@@ -161,17 +161,25 @@ ros::Publisher odom_pub = nh.advertise<nav_msgs::Odometry>("odom", 50);
 tf::TransformBroadcaster broadcaster;
 
 
-    long  baudrate = 115200;
-  string serialPath = "/dev/ttyACM0";
+  long  baud = 115200;
+  string port = "/dev/ttyACM0";
+  bool simulateMode = false;
+  long timeout = 500000;
+
+    nh.param("baud", baud, baud);
+    nh.param("port", port, port);
+    nh.param("simulate", simulateMode, simulateMode);
+    nh.param("timeout", timeout, timeout);
+
     // if( argc>2 )
     //     baudrate = atoi( argv[2]);
 
     SerialPort::OpenOptions options = SerialPort::defaultOptions;
-    options.baudRate = SerialPort::BaudRateMake( baudrate );
+    options.baudRate = SerialPort::BaudRateMake( baud );
 
-    cout << "try to open port " <<  serialPath << " at baudrate of " << baudrate << endl;
+    cout << "try to open port " <<  port << " at baudrate of " << baud << endl;
 
-    SerialPort serialPort(serialPath, options );
+    SerialPort serialPort(port, options );
 
 
     bool ret = serialPort.isOpen();
@@ -182,6 +190,12 @@ tf::TransformBroadcaster broadcaster;
         cout << errno <<  ": " <<strerror(errno) <<endl;
         return -1;
     }
+
+  if(simulateMode == true )
+  {
+      cout << "set to simulate mode ...\n";
+      serialPort.write("\nsm1\n", 5);
+  }
 
     m_pSerialPort = &serialPort;
 
@@ -204,5 +218,5 @@ ros::Rate r(rate);
   }
 
   m_beQuit = true;
-  serialPort.close();
+  serialPort.close(); 
 }
