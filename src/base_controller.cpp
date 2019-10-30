@@ -23,32 +23,38 @@
 #include <termios.h>
 using namespace std;
 
-int getIntsFromStr(int[] ints, const char *buf, int count);
+int getIntsFromStr(int *ints, const char *buf, int count);
 
 class SerialMsgHandler
 {
-  publc:
+  public:
       SerialMsgHandler(SerialPort *pSerialPort);
-      serialMsgLoop( long timeOut );
+      
+      void serialMsgLoop( long timeOut );
       bool m_beQuit;
   private:
     SerialPort *m_pSerialPort;
 
         ros::NodeHandle nh_;
         ros::Publisher odom_pub;
-         = nh_.advertise<nav_msgs::Odometry>("odom", 50);
+         tf::TransformBroadcaster broadcaster;
+
+          const char *base_link; // "/base_link";
+          const char *odom; // [] = "/odom";
 
   private:
     void geometry_handle( char *buf , int len);
     void IRSensor_handle( char *buf, int len );
     void IMU_handle(char *buf, int len );
-    void publishGeometryMsg(double x, double y, double theta, double v);
+    void publishGeometryMsg(double x, double y, double theta, double w,  double v);
 
 
-}
+};
 
 SerialMsgHandler::SerialMsgHandler( SerialPort *pSerialPort ):
-  m_beQuit(false)
+  m_beQuit(false),
+  base_link("/base_link"),
+  odom("/odem")
 {
   m_pSerialPort = pSerialPort;
   odom_pub = nh_.advertise<nav_msgs::Odometry>("odom", 50);
@@ -64,11 +70,11 @@ void SerialMsgHandler::serialMsgLoop( long timeOut )
         cout << "Serial read thead started..." <<endl;
         while( true )
         {
-                if( serial->available( timeOut ) )
+                if( m_pSerialPort->available( timeOut ) )
                 {
                         while( true )
                         {
-                            int ret = serial->read(&ch, 1 );
+                            int ret = m_pSerialPort->read(&ch, 1 );
                             if( ret != 1 )
                                 break;
 
@@ -80,7 +86,7 @@ void SerialMsgHandler::serialMsgLoop( long timeOut )
                                 if( idx > 2 && buf[0] == 'R' && buf[1] == 'P')
                                 {
 
-                                  geometry_handle(buf, idx;
+                                  geometry_handle(buf, idx);
                                 }
                                 else if( idx > 2 && buf[0] == 'I' && buf[1]=='R')
                                 {
@@ -119,7 +125,7 @@ void SerialMsgHandler::serialMsgLoop( long timeOut )
 }
 
 
-void SerialMsgHandler::geometry_handler( char *buf , int len)
+void SerialMsgHandler::geometry_handle( char *buf , int len)
 {
   //"RPx,y,theta,v" x=x*10000,y=y*1000,theta=theta*10000,v=%04f
 
@@ -255,17 +261,17 @@ void serialReadThread(SerialPort *serial,
                  }
 
 
-               if( m_beQuit  )
-               {
-                 cout << "required to quit, close serial thread!" << endl;
-                  break;
-               }
+              //  if( m_beQuit  )
+              //  {
+              //    cout << "required to quit, close serial thread!" << endl;
+              //     break;
+              //  }
 
         }
 }
 
 
-
+SerialPort *m_pSerialPort = NULL;
 
 
 
@@ -289,10 +295,10 @@ ros::init(argc, argv, "base_controller");
 ros::NodeHandle  nh;
 ros::Subscriber sub = nh.subscribe("cmd_vel", 50,  handle_twist );
 
-  long  baud = 115200;
+  int  baud = 115200;
   string port = "/dev/ttyACM0";
   bool simulateMode = false;
-  long timeout = 500000;
+  int timeout = 500000;
 
     nh.param("baud", baud, baud);
     nh.param("port", port, port);
@@ -308,6 +314,8 @@ ros::Subscriber sub = nh.subscribe("cmd_vel", 50,  handle_twist );
     cout << "try to open port " <<  port << " at baudrate of " << baud << endl;
 
     SerialPort serialPort(port, options );
+
+    m_pSerialPort = &serialPort;
 
     bool ret = serialPort.isOpen();
 
@@ -340,7 +348,8 @@ ros::Subscriber sub = nh.subscribe("cmd_vel", 50,  handle_twist );
   ros::Rate r(rate);
 ros::Time current_time;
 
-  signal(SIGINT,quit);
+  // signal(SIGINT,quit);
+  
   while(nh.ok()){
     ros::spinOnce();
     // ros::topic::waitForMessage<geometry_msgs::Vector3Stamped>("rpm", n, d);
@@ -352,12 +361,12 @@ ros::Time current_time;
 }
 
 
-int getIntsFromStr(int[] ints, const char *buf, int count)
+int getIntsFromStr(int *ints, const char *buf, int count)
 {
     if( ints == NULL || buf == NULL)
       return 0;
     int cnt = 0;
-    char *p = buf;
+     const char *p = buf;
     while( cnt < count )
     {
         ints[cnt] = atoi( p );

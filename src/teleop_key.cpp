@@ -19,7 +19,7 @@ class TeleopZMCRobot
 
     private:
         ros::NodeHandle nh_;
-        double linear_, angular_, v_max, w_max, v_step, w_step;
+        float linear_, angular_, v_max, w_max, v_step, w_step;
 
         ros::Publisher twist_pub_;
 };
@@ -37,7 +37,7 @@ class TeleopZMCRobot
             nh_.param("w_max", w_max, w_max);
             nh_.param("w_step", w_step, w_step);
 
-            twist_pub = nh.advertise<geometry_msgs::Twist>("cmd_vel", 1);
+            twist_pub_ = nh_.advertise<geometry_msgs::Twist>("cmd_vel", 1);
         }
 
     int kfd = 0;
@@ -70,7 +70,7 @@ class TeleopZMCRobot
 
         tcgetattr(kfd, &cooked);
         memcpy(&raw, &cooked, sizeof( struct termios ));
-        raw.c_lflag &=~(ICANOW | ECHO );
+        raw.c_lflag &=~(ICANON | ECHO );
         raw.c_cc[VEOL] = 1;
         raw.c_cc[VEOF] = 2;
         tcsetattr(kfd, TCSANOW, &raw);
@@ -134,8 +134,8 @@ class TeleopZMCRobot
             if( dirty == true )
             {
                 geometry_msgs::Twist twist;
-                twist.angular.z = a_scale_ * angular_;
-                twist.linear.x = l_scale_ * linear_;
+                twist.angular.z =  angular_;
+                twist.linear.x =  linear_;
                 twist_pub_.publish(twist);
                 dirty = false;
                 fprintf(stdout, "%02f, %02f", linear_, angular_);

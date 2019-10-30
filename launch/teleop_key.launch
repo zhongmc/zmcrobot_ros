@@ -1,0 +1,13 @@
+
+<launch>
+
+
+    <node name ="teleop" pkg="zmcrobot_ros" type="teleop_keyboard" output="screen">
+            <param name="v_max" value="0.2" />
+            <param name="v_step" value="0.02"/>
+
+            <param name="w_max" value="2" />
+            <param name= "w_step" value="0.1" />
+    </node>
+
+</launch>
