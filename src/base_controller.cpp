@@ -23,43 +23,179 @@
 #include <termios.h>
 using namespace std;
 
+int getIntsFromStr(int[] ints, const char *buf, int count);
 
-
-SerialPort *m_pSerialPort  = NULL;
-bool m_beQuit = false;
-
-
-int kfd = 0;
-
-void quit(int sig)
-
+class SerialMsgHandler
 {
-m_beQuit = true;
-  
-  (void)sig;
-  ros::shutdown();
+  publc:
+      SerialMsgHandler(SerialPort *pSerialPort);
+      serialMsgLoop( long timeOut );
+      bool m_beQuit;
+  private:
+    SerialPort *m_pSerialPort;
 
-  
-  exit(0);
+        ros::NodeHandle nh_;
+        ros::Publisher odom_pub;
+         = nh_.advertise<nav_msgs::Odometry>("odom", 50);
+
+  private:
+    void geometry_handle( char *buf , int len);
+    void IRSensor_handle( char *buf, int len );
+    void IMU_handle(char *buf, int len );
+    void publishGeometryMsg(double x, double y, double theta, double v);
+
+
+}
+
+SerialMsgHandler::SerialMsgHandler( SerialPort *pSerialPort ):
+  m_beQuit(false)
+{
+  m_pSerialPort = pSerialPort;
+  odom_pub = nh_.advertise<nav_msgs::Odometry>("odom", 50);
+}
+
+void SerialMsgHandler::serialMsgLoop( long timeOut )
+{
+
+       int idx = 0;
+        char buf[1024];
+        char ch;
+
+        cout << "Serial read thead started..." <<endl;
+        while( true )
+        {
+                if( serial->available( timeOut ) )
+                {
+                        while( true )
+                        {
+                            int ret = serial->read(&ch, 1 );
+                            if( ret != 1 )
+                                break;
+
+                            buf[idx++] = ch;
+
+                            if( ch == '\r' || ch == '\n')
+                            {
+                                buf[idx] = '\0';
+                                if( idx > 2 && buf[0] == 'R' && buf[1] == 'P')
+                                {
+
+                                  geometry_handle(buf, idx;
+                                }
+                                else if( idx > 2 && buf[0] == 'I' && buf[1]=='R')
+                                {
+                                    IRSensor_handle(buf, idx );
+                                }
+                                else if(  idx>2 && buf[0] == 'I' && buf[1] == 'M')
+                                {
+                                    IMU_handle( buf, idx );
+                                }
+                                else
+                                {
+                                    cout << buf;
+                                }
+                                idx = 0;
+                            }
+
+                           if( idx > 1020 )
+                           {
+                               cout << buf << endl;
+                               cout << "read out of buff !" << endl;
+                               idx = 0;
+
+                           } 
+                        }
+                 }
+
+
+               if( m_beQuit  )
+               {
+                 cout << "required to quit, close serial thread!" << endl;
+                  break;
+               }
+
+        }
+
 }
 
 
-void geometry_handler( char *buf , int len)
+void SerialMsgHandler::geometry_handler( char *buf , int len)
+{
+  //"RPx,y,theta,v" x=x*10000,y=y*1000,theta=theta*10000,v=%04f
+
+  double x, y, theta, w, v;
+  int ints[5];
+
+  int ret = getIntsFromStr(ints, buf+2, 5);
+  if( ret != 5)
+  {
+      cout << "geometry error:" << buf;
+      return;
+  }
+
+  x = (double) ints[0]/10000.0;
+  y = (double) ints[1]/10000.0;
+  theta = (double) ints[2]/10000.0;
+  w = (double) ints[3]/10000.0;
+  v = (double) ints[4]/10000.0;
+  publishGeometryMsg(x,y,theta, w, v);
+
+}
+
+
+void SerialMsgHandler::publishGeometryMsg(double x, double y,double theta, double w, double v)
+{
+    ros::Time current_time;
+    current_time = ros::Time::now();
+
+      geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(theta);
+
+      geometry_msgs::TransformStamped t;
+      t.header.frame_id = odom;
+      t.child_frame_id = base_link;
+      t.transform.translation.x = x;
+      t.transform.translation.y = y;
+      t.transform.translation.z = 0.0;
+      t.transform.rotation = odom_quat;
+      t.header.stamp = current_time;
+
+      broadcaster.sendTransform(t);
+
+    nav_msgs::Odometry odom_msg;
+    odom_msg.header.stamp = current_time;
+    odom_msg.header.frame_id = odom;
+    odom_msg.pose.pose.position.x = x;
+    odom_msg.pose.pose.position.y = y;
+    odom_msg.pose.pose.position.z = 0.0;
+    odom_msg.pose.pose.orientation = odom_quat;
+
+    odom_msg.child_frame_id = base_link;
+    odom_msg.twist.twist.linear.x = v;
+    odom_msg.twist.twist.linear.y = 0.0;
+    odom_msg.twist.twist.angular.z = w;
+
+    odom_pub.publish(odom_msg);
+
+}
+
+
+void SerialMsgHandler::IRSensor_handle( char *buf, int len )
+{
+    cout << buf ;
+}
+
+void SerialMsgHandler::IMU_handle(char *buf, int len )
 {
     cout << buf ;
 
 }
 
-void  IRSensor_handler( char *buf, int len )
+
+void serialMsgThread( SerialMsgHandler *pHandler, long timeout )
 {
-    cout << buf ;
+    pHandler->serialMsgLoop(timeout);
 }
 
-void IMU_handler(char *buf, int len )
-{
-    cout << buf ;
-
-}
 
 void serialReadThread(SerialPort *serial,  
       void (*geomProc)( char *,  int ), 
@@ -130,7 +266,6 @@ void serialReadThread(SerialPort *serial,
 
 
 
-ros::Time current_time;
 
 
 
@@ -152,14 +287,7 @@ int main(int argc, char** argv){
 ros::init(argc, argv, "base_controller");
 
 ros::NodeHandle  nh;
-
-ros::NodeHandle nh_private_("~");
-
 ros::Subscriber sub = nh.subscribe("cmd_vel", 50,  handle_twist );
-ros::Publisher odom_pub = nh.advertise<nav_msgs::Odometry>("odom", 50);
-
-tf::TransformBroadcaster broadcaster;
-
 
   long  baud = 115200;
   string port = "/dev/ttyACM0";
@@ -181,7 +309,6 @@ tf::TransformBroadcaster broadcaster;
 
     SerialPort serialPort(port, options );
 
-
     bool ret = serialPort.isOpen();
 
     if( !ret )
@@ -197,26 +324,48 @@ tf::TransformBroadcaster broadcaster;
       serialPort.write("\nsm1\n", 5);
   }
 
-    m_pSerialPort = &serialPort;
-
     int idx;
     char buf[200];
 
-     std::thread readThread(serialReadThread,  &serialPort,  
-                  &geometry_handler, &IRSensor_handler, &IMU_handler , 1000000 );
+    SerialMsgHandler msgHandler(&serialPort);
+
+    //start the serial msg read and handle thread
+    std::thread msgHandleThread(serialMsgThread, &msgHandler, timeout);
+
+    //  std::thread readThread(serialReadThread,  &serialPort,  
+    //               &geometry_handler, &IRSensor_handler, &IMU_handler , 1000000 );
 
 
   double rate = 20.0;
+  ros::Rate r(rate);
+ros::Time current_time;
 
   signal(SIGINT,quit);
-
-ros::Rate r(rate);
   while(nh.ok()){
     ros::spinOnce();
     // ros::topic::waitForMessage<geometry_msgs::Vector3Stamped>("rpm", n, d);
     current_time = ros::Time::now();
   }
 
-  m_beQuit = true;
+  msgHandler.m_beQuit = true;
   serialPort.close(); 
+}
+
+
+int getIntsFromStr(int[] ints, const char *buf, int count)
+{
+    if( ints == NULL || buf == NULL)
+      return 0;
+    int cnt = 0;
+    char *p = buf;
+    while( cnt < count )
+    {
+        ints[cnt] = atoi( p );
+        p = strchr(p, ',');
+        if( p == NULL )
+          return cnt;
+        p++;
+        cnt++;
+    }
+  return cnt;
 }
