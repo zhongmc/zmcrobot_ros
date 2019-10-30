@@ -138,10 +138,10 @@ class TeleopZMCRobot
                 twist.linear.x =  linear_;
                 twist_pub_.publish(twist);
                 dirty = false;
-                fprintf(stdout, "%02f, %02f", linear_, angular_);
+             //   fprintf(stdout, "%02f, %02f", linear_, angular_);
             }
         }
 
     }
 
-}
+

@@ -135,7 +135,7 @@ void SerialMsgHandler::geometry_handle( char *buf , int len)
   int ret = getIntsFromStr(ints, buf+2, 5);
   if( ret != 5)
   {
-      cout << "geometry error:" << buf;
+      cout << "geometry error:" << ret << buf;
       return;
   }
 
@@ -297,7 +297,7 @@ ros::Subscriber sub = nh.subscribe("cmd_vel", 50,  handle_twist );
 
   int  baud = 115200;
   string port = "/dev/ttyACM0";
-  bool simulateMode = false;
+  bool simulateMode = true;
   int timeout = 500000;
 
     nh.param("baud", baud, baud);
@@ -369,12 +369,11 @@ int getIntsFromStr(int *ints, const char *buf, int count)
      const char *p = buf;
     while( cnt < count )
     {
-        ints[cnt] = atoi( p );
+        ints[cnt++] = atoi( p );
         p = strchr(p, ',');
         if( p == NULL )
           return cnt;
         p++;
-        cnt++;
     }
   return cnt;
 }

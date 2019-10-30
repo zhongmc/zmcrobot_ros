@@ -145,6 +145,7 @@ link_directories(
 add_executable(zmcrobot_ros src/base_controller.cpp)
 target_link_libraries( zmcrobot_ros ${catkin_LIBRARIES} pthread libSerialPort.a )
 
+
 add_executable(teleop_key src/teleop_key.cpp)
 target_link_libraries( teleop_key ${catkin_LIBRARIES}  )
 
@@ -190,6 +191,14 @@ target_link_libraries( teleop_key ${catkin_LIBRARIES}  )
 #   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
 # )
+
+
+
+install(TARGETS zmcrobot_ros teleop_key
+        ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+        LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+        RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 
 ## Mark cpp header files for installation
 # install(DIRECTORY include/${PROJECT_NAME}/

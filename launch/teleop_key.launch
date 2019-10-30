@@ -2,7 +2,7 @@
 <launch>
 
 
-    <node name ="teleop" pkg="zmcrobot_ros" type="teleop_keyboard" output="screen">
+    <node name ="teleop" pkg="zmcrobot_ros" type="teleop_key" output="screen">
             <param name="v_max" value="0.2" />
             <param name="v_step" value="0.02"/>
 
