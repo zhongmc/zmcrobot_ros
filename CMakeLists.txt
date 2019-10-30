@@ -143,8 +143,10 @@ link_directories(
 # add_executable(${PROJECT_NAME}_node src/zmcrobot_node.cpp)
 
 add_executable(zmcrobot_ros src/base_controller.cpp)
-
 target_link_libraries( zmcrobot_ros ${catkin_LIBRARIES} pthread libSerialPort.a )
+
+add_executable(teleop_key src/telop_key.cpp)
+target_link_libraries( teleop_key ${catkin_LIBRARIES}  )
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
