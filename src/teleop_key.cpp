@@ -3,6 +3,8 @@
 #include <signal.h>
 #include <termios.h>
 #include <stdio.h>
+//#include <ctrlcur.h>
+
 
 #define KEYCODE_R 0x43
 #define KEYCODE_L 0x44
@@ -79,6 +81,7 @@ class TeleopZMCRobot
         puts("-------------------------------");
         puts("use arrow keys to move the robot. space to brake; 'q' to quit.");
 
+	printf("\033[31mv=0.00,w=0.00\n");
         linear_ = angular_ = 0;
 
         for(;;)
@@ -138,7 +141,9 @@ class TeleopZMCRobot
                 twist.linear.x =  linear_;
                 twist_pub_.publish(twist);
                 dirty = false;
-             //   fprintf(stdout, "%02f, %02f", linear_, angular_);
+	
+	        printf("\033[1A\033[K\033[31mv=%.02f,w=%.02f\n", linear_, angular_);
+	  
             }
         }
 
