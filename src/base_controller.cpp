@@ -3,6 +3,8 @@
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/Twist.h>
 #include <geometry_msgs/Vector3.h>
+
+#include <sensor_msgs/PointCloud.h>
 #include <stdio.h>
 #include <algorithm>
 // #include<robot_specs.h>
@@ -201,7 +203,7 @@ void SerialMsgHandler::IRSensor_handle(char *buf, int len)
   cloud.channels[0].name = "intensities";
   cloud.channels[0].values.resize(num_points);
 
-   for (unsigned int i = 0; i < num_points; ++i)
+  for (unsigned int i = 0; i < num_points; ++i)
   {
 
     irSensors[i]->setDistance(ints[i] / 100.0);
