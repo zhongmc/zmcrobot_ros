@@ -194,6 +194,11 @@ void SerialMsgHandler::IRSensor_handle(char *buf, int len)
     return;
   }
 
+  broadcaster.sendTransform(
+      tf::StampedTransform(
+          tf::Transform(tf::Quaternion(0, 0, 0, 1), tf::Vector3(0, 0.0, 0.0)),
+          ros::Time::now(), "base_link", "sensor_frame"));
+
   int num_points = 5;
   sensor_msgs::PointCloud cloud;
   cloud.header.stamp = ros::Time::now();
@@ -363,7 +368,7 @@ int main(int argc, char **argv)
   //               &geometry_handler, &IRSensor_handler, &IMU_handler , 1000000 );
 
   tf::TransformBroadcaster broadcaster;
-  double rate = 20.0;
+  double rate = 10.0;
   ros::Rate r(rate);
   ros::Time current_time;
 
@@ -375,10 +380,7 @@ int main(int argc, char **argv)
     // ros::topic::waitForMessage<geometry_msgs::Vector3Stamped>("rpm", n, d);
     current_time = ros::Time::now();
 
-    broadcaster.sendTransform(
-        tf::StampedTransform(
-            tf::Transform(tf::Quaternion(0, 0, 0, 1), tf::Vector3(0, 0.0, 0.0)),
-            ros::Time::now(), "base_link", "sensor_frame"));
+    r.sleep();
   }
 
   msgHandler.m_beQuit = true;
