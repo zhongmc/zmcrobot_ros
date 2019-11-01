@@ -95,11 +95,6 @@
       <child link="laptop"/>
       <origin xyz="0 0 0"/>
     </joint>
-   <joint name="base_to_irsensor" type="fixed">
-      <parent link="base_link"/>
-      <child link="sensor_frame"/>
-      <origin xyz="0 0 0"/>
-    </joint>
 
 
   </robot>
