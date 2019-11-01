@@ -362,6 +362,7 @@ int main(int argc, char **argv)
   //  std::thread readThread(serialReadThread,  &serialPort,
   //               &geometry_handler, &IRSensor_handler, &IMU_handler , 1000000 );
 
+  tf::TransformBroadcaster broadcaster;
   double rate = 20.0;
   ros::Rate r(rate);
   ros::Time current_time;
