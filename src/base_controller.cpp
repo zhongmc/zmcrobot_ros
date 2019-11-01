@@ -59,11 +59,11 @@ SerialMsgHandler::SerialMsgHandler(SerialPort *pSerialPort) : m_beQuit(false),
   odom_pub = nh_.advertise<nav_msgs::Odometry>("odom", 50);
   cloud_pub = nh_.advertise<sensor_msgs::PointCloud>("cloud", 50);
 
-  irSensors[0] = new IRSensor(-0.073, 0.066, PI / 2, GP2Y0A21);
-  irSensors[1] = new IRSensor(0.061, 0.05, PI / 4, GP2Y0A21); // 0.16,0.045, PI/6 0.075, 0.035
+  irSensors[0] = new IRSensor(-0.073, 0.066, M_PI / 2, GP2Y0A21);
+  irSensors[1] = new IRSensor(0.061, 0.05, M_PI / 4, GP2Y0A21); // 0.16,0.045, PI/6 0.075, 0.035
   irSensors[2] = new IRSensor(0.072, 0.0, 0, GP2Y0A21);
-  irSensors[3] = new IRSensor(0.061, -0.05, -PI / 4, GP2Y0A21);
-  irSensors[4] = new IRSensor(-0.073, -0.066, -PI / 2, GP2Y0A21);
+  irSensors[3] = new IRSensor(0.061, -0.05, -M_PI / 4, GP2Y0A21);
+  irSensors[4] = new IRSensor(-0.073, -0.066, -M_PI / 2, GP2Y0A21);
 }
 
 void SerialMsgHandler::serialMsgLoop(long timeOut)
