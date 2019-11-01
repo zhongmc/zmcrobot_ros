@@ -373,6 +373,11 @@ int main(int argc, char **argv)
     ros::spinOnce();
     // ros::topic::waitForMessage<geometry_msgs::Vector3Stamped>("rpm", n, d);
     current_time = ros::Time::now();
+
+    broadcaster.sendTransform(
+        tf::StampedTransform(
+            tf::Transform(tf::Quaternion(0, 0, 0, 1), tf::Vector3(0, 0.0, 0.0)),
+            ros::Time::now(), "base_link", "sensor_frame"));
   }
 
   msgHandler.m_beQuit = true;
