@@ -119,11 +119,11 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-   ${catkin_INCLUDE_DIRS} /home/zhongmc/catkin_ws/src/zmcrobot_ros/src/include
+   ${catkin_INCLUDE_DIRS} src/include
 )
 
 link_directories(
-	${cakin_LIB_DIRS} /home/zhongmc/catkin_ws/src/zmcrobot_ros/src/lib
+	${cakin_LIB_DIRS} src/lib
 )
 
 
