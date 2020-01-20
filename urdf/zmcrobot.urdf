@@ -3,12 +3,95 @@
     <link name="base_link">
       <visual>
         <geometry>
-          <box size="0.20 0.15 0.07"/>
+          <box size="0.20 0.15 0.01"/>
         </geometry>
-        <origin rpy="0 0 0" xyz="-0.08 0 0"/>
+        <origin rpy="0 0 0" xyz="0.03 0 0"/>
         <material name="white">
           <color rgba="1 1 1 1"/>
         </material>
+      </visual>
+    </link>
+
+
+    <link name="top_board">
+      <visual>
+        <geometry>
+          <box size="0.20 0.15 0.01"/>
+        </geometry>
+        <origin rpy="0 0 0" xyz="0.03 0  0.06"/>
+        <material name="white"/>
+      </visual>
+    </link>
+
+    <link name="battery">
+      <visual>
+        <geometry>
+          <box size="0.06 0.08 0.02"/>
+        </geometry>
+        <origin rpy="0 0 0" xyz="-0.03 0  0.012"/>
+        <material name="cyan">
+	    <color rgba="0.1 0.8 0 1"/>
+        </material>
+      </visual>
+    </link>
+
+    <link name="mcu">
+      <visual>
+        <geometry>
+          <box size="0.057 0.07 0.012"/>
+        </geometry>
+        <origin rpy="0 0 0" xyz="0.05 0  0.012"/>
+        <material name="white"/>
+      </visual>
+    </link>
+
+    <link name="top_battery">
+      <visual>
+        <geometry>
+          <box size="0.06 0.08 0.012"/>
+        </geometry>
+        <origin rpy="0 0 0" xyz="0.05 0  0.08"/>
+        <material name="cyan"/>
+      </visual>
+    </link>
+
+   <link name="top_left">
+      <visual>
+        <geometry>
+          <cylinder length="0.075" radius="0.002"/>
+        </geometry>
+        <origin rpy="0 0 1.57" xyz="0.125 0.07 0.03"/>
+          <material name="white"/>
+      </visual>
+    </link>
+
+   <link name="top_right">
+      <visual>
+        <geometry>
+          <cylinder length="0.075" radius="0.002"/>
+        </geometry>
+        <origin rpy="0 0 1.57" xyz="-0.065 0.07 0.03"/>
+          <material name="white"/>
+      </visual>
+    </link>
+
+  <link name="bottom_left">
+      <visual>
+        <geometry>
+          <cylinder length="0.075" radius="0.002"/>
+        </geometry>
+        <origin rpy="0 0 1.57" xyz="-0.065 -0.07 0.03"/>
+          <material name="white"/>
+      </visual>
+    </link>
+
+  <link name="bottom_right">
+      <visual>
+        <geometry>
+          <cylinder length="0.075" radius="0.002"/>
+        </geometry>
+        <origin rpy="0 0 1.57" xyz="0.125 -0.07 0.03"/>
+          <material name="white"/>
       </visual>
     </link>
 
@@ -17,10 +100,20 @@
         <geometry>
           <cylinder length="0.027" radius="0.0325"/>
         </geometry>
-        <origin rpy="1.57 0 0" xyz="0 0.13 -0.0325"/>
+        <origin rpy="1.57 0 0" xyz="0.0 0.07 -0.0325"/>
         <material name="black">
           <color rgba="0 0 0 1"/>
         </material>
+      </visual>
+    </link>
+
+    <link name="left_motor">
+      <visual>
+        <geometry>
+          <cylinder length="0.05" radius="0.018"/>
+        </geometry>
+        <origin rpy="1.57 0 0" xyz="-0.0 0.03 -0.0325"/>
+        <material name="white"/>
       </visual>
     </link>
 
@@ -29,32 +122,66 @@
         <geometry>
           <cylinder length="0.027" radius="0.0325"/>
         </geometry>
-        <origin rpy="1.57 0 0" xyz="0 -0.13 -0.0325"/>
+        <origin rpy="1.57 0 0" xyz="0.0 -0.07 -0.0325"/>
           <material name="black"/>
       </visual>
     </link>
 
-    <link name="wheel_track">
+
+   <link name="right_motor">
       <visual>
         <geometry>
-          <box size="0.065 0.21 0.01"/>
+          <cylinder length="0.05" radius="0.018"/>
         </geometry>
-        <origin rpy="0 0 0" xyz="0 0 -0.03"/>
+        <origin rpy="1.57 0 0" xyz="-0.0 -0.03 -0.0325"/>
+          <material name="white"/>
+      </visual>
+    </link>
+
+    <link name="wheel_third">
+      <visual>
+        <geometry>
+          <cylinder length="0.02" radius="0.0225"/>
+        </geometry>
+        <origin rpy="1.57 0 0" xyz="0.10 0 -0.0425"/>
+          <material name="brawn">
+		<color rgba="0.8 0.3 0 1"/>
+	  </material>
+	</visual>
+    </link>
+
+   <link name="wheel_track">
+      <visual>
+        <geometry>
+          <box size="0.03 0.03 0.055"/>
+        </geometry>
+        <origin rpy="0 0 0" xyz="0.1 0 -0.016"/>
         <material name="white"/>
       </visual>
     </link>
 
+
+    <!-- link name="wheel_track">
+      <visual>
+        <geometry>
+          <box size="0.065 0.13 0.01"/>
+        </geometry>
+        <origin rpy="0 0 0" xyz="-0.05 0 -0.03"/>
+        <material name="white"/>
+      </visual>
+    </link -->
+
     <link name="kinect">
       <visual>
         <geometry>
-          <box size="0.06 0.28 0.04"/>
+          <box size="0.03 0.16 0.02"/>
         </geometry>
-        <origin rpy="0 0 0" xyz="-0.18 0 0.08"/>
+        <origin rpy="0 0 0" xyz="-0.03 0 0.08"/>
         <material name="black"/>
       </visual>
     </link>
 
-    <link name="laptop">
+    <!-- link name="laptop">
       <visual>
         <geometry>
           <box size="0.38 0.25 0.03"/>
@@ -64,7 +191,7 @@
           <color rgba="192 192 192 0.6"/>
         </material>
       </visual>
-    </link>
+    </link -->
 
     <joint name="base_to_wheel_left" type="fixed">
       <parent link="base_link"/>
@@ -72,13 +199,32 @@
       <origin xyz="0 0 0"/>
     </joint>
 
+    <joint name="base_to_left_motor" type="fixed">
+      <parent link="base_link"/>
+      <child link="left_motor"/>
+      <origin xyz="0 0 0"/>
+    </joint>
+
+
     <joint name="base_to_wheel_right" type="fixed">
       <parent link="base_link"/>
       <child link="wheel_right"/>
       <origin xyz="0 0 0"/>
     </joint>
 
-    <joint name="base_to_wheel_track" type="fixed">
+    <joint name="base_to_right_motor" type="fixed">
+      <parent link="base_link"/>
+      <child link="right_motor"/>
+      <origin xyz="0 0 0"/>
+    </joint>
+
+   <joint name="base_to_wheel_third" type="fixed">
+      <parent link="base_link"/>
+      <child link="wheel_third"/>
+      <origin xyz="0 0 0"/>
+    </joint>
+ 
+   <joint name="base_to_wheel_track" type="fixed">
       <parent link="base_link"/>
       <child link="wheel_track"/>
       <origin xyz="0 0 0"/>
@@ -89,12 +235,63 @@
       <child link="kinect"/>
       <origin xyz="0 0 0"/>
     </joint>
+ 
+  <joint name="base_to_top_board" type="fixed">
+      <parent link="base_link"/>
+      <child link="top_board"/>
+      <origin xyz="0 0 0"/>
+    </joint>
 
-    <joint name="base_to_laptop" type="fixed">
+
+  <joint name="base_to_top_left" type="fixed">
+      <parent link="base_link"/>
+      <child link="top_left"/>
+      <origin xyz="0 0 0"/>
+    </joint>
+
+  <joint name="base_to_top_right" type="fixed">
+      <parent link="base_link"/>
+      <child link="top_right"/>
+      <origin xyz="0 0 0"/>
+    </joint>
+
+  <joint name="base_to_bottom_right" type="fixed">
+      <parent link="base_link"/>
+      <child link="bottom_right"/>
+      <origin xyz="0 0 0"/>
+    </joint>
+
+
+  <joint name="base_to_bottom_left" type="fixed">
+      <parent link="base_link"/>
+      <child link="bottom_left"/>
+      <origin xyz="0 0 0"/>
+    </joint>
+
+  <joint name="base_to_battery" type="fixed">
+      <parent link="base_link"/>
+      <child link="battery"/>
+      <origin xyz="0 0 0"/>
+    </joint>
+
+ <joint name="base_to_top_battery" type="fixed">
+      <parent link="base_link"/>
+      <child link="top_battery"/>
+      <origin xyz="0 0 0"/>
+    </joint>
+
+  <joint name="base_to_mcu" type="fixed">
+      <parent link="base_link"/>
+      <child link="mcu"/>
+      <origin xyz="0 0 0"/>
+    </joint>
+
+
+    <!-- joint name="base_to_laptop" type="fixed">
       <parent link="base_link"/>
       <child link="laptop"/>
       <origin xyz="0 0 0"/>
-    </joint>
+    </joint -->
 
 
   </robot>

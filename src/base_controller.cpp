@@ -3,6 +3,7 @@
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/Twist.h>
 #include <geometry_msgs/Vector3.h>
+#include <sensor_msgs/Imu.h>
 
 #include <sensor_msgs/PointCloud.h>
 #include <stdio.h>
@@ -37,6 +38,8 @@ private:
   ros::NodeHandle nh_;
   ros::Publisher odom_pub;
   ros::Publisher cloud_pub;
+  ros::Publisher imu_pub;
+
   tf::TransformBroadcaster broadcaster;
 
   const char *base_link; // "/base_link";
@@ -58,6 +61,8 @@ SerialMsgHandler::SerialMsgHandler(SerialPort *pSerialPort) : m_beQuit(false),
   m_pSerialPort = pSerialPort;
   odom_pub = nh_.advertise<nav_msgs::Odometry>("odom", 50);
   cloud_pub = nh_.advertise<sensor_msgs::PointCloud>("cloud", 50);
+  imu_pub = nh_.advertise<sensor_msgs::Imu>("IMU_data", 20);
+
 
   irSensors[0] = new IRSensor(-0.073, 0.066, M_PI / 2, GP2Y0A21);
   irSensors[1] = new IRSensor(0.061, 0.05, M_PI / 4, GP2Y0A21); // 0.16,0.045, PI/6 0.075, 0.035
@@ -223,7 +228,34 @@ void SerialMsgHandler::IRSensor_handle(char *buf, int len)
 
 void SerialMsgHandler::IMU_handle(char *buf, int len)
 {
-  cout << buf;
+ // cout << buf;
+
+ int ints[4];
+
+  int ret = getIntsFromStr(ints, buf + 2, 4);
+  if (ret != 4)
+  {
+    cout << "im data error:" << ret << buf;
+    return;
+  }
+
+	//ROS_INFO("Q: %d %d %d %d\n", ints[0], ints[1], ints[2], ints[3]);
+
+	sensor_msgs::Imu imu_data;
+            imu_data.header.stamp = ros::Time::now();
+            imu_data.header.frame_id = "base_link";
+//            imu_data.orientation.x = (float)ints[2]/1000; //q3
+//            imu_data.orientation.y = -(float)ints[1]/1000; //-q2;
+//            imu_data.orientation.z = -(float)ints[0]/1000; //-q1;
+//            imu_data.orientation.w = (float)ints[3]/1000; //q4;
+
+            imu_data.orientation.x = (float)ints[1]/1000; //q3
+            imu_data.orientation.y = (float)ints[2]/1000; //-q2;
+            imu_data.orientation.z = (float)ints[3]/1000; //-q1;
+            imu_data.orientation.w = (float)ints[0]/1000; //q4;
+
+            imu_pub.publish(imu_data);
+	
 }
 
 void serialMsgThread(SerialMsgHandler *pHandler, long timeout)
@@ -319,18 +351,31 @@ int main(int argc, char **argv)
   ros::NodeHandle nh;
   ros::Subscriber sub = nh.subscribe("cmd_vel", 50, handle_twist);
 
+//本节点空间
+// 波浪符代表节点句柄的命名空间，其作用与C++的”this”指针和python中的”self”类似.在ros中可以使用 roslaunch 进行参数传递. 在 launch 标签内的是全局参数，而在node 标签内的则是局部参数。如果需要取全局的,需要名字前面加'/'; 如果要用 nh 取参数,则需要在名字前面加 node name : "nodename/paramnane"
+  ros::NodeHandle nlh("~");
+
   int baud = 115200;
   string port = "/dev/ttyACM0";
   bool simulateMode = true;
   int timeout = 500000;
+  bool use_imu = false;
+  float alpha = 0.8;
 
-  nh.param("baud", baud, baud);
-  nh.param("port", port, port);
-  nh.param("simulate", simulateMode, simulateMode);
-  nh.param("timeout", timeout, timeout);
+  nlh.param("baud", baud, baud);
+  nlh.param("port", port, port);
+  nlh.param("simulate", simulateMode, simulateMode);
+  nlh.param("timeout", timeout, timeout);
+  
+  nlh.param("use_imu", use_imu, use_imu);
+  nlh.param("alpha", alpha, alpha);
+
 
   // if( argc>2 )
   //     baudrate = atoi( argv[2]);
+
+	
+	cout << "value:" << port << endl;
 
   SerialPort::OpenOptions options = SerialPort::defaultOptions;
   options.baudRate = SerialPort::BaudRateMake(baud);
@@ -355,6 +400,12 @@ int main(int argc, char **argv)
     cout << "set to simulate mode ...\n";
     serialPort.write("\nsm1\n", 5);
   }
+
+ if( use_imu )
+ {
+     ROS_INFO("set use imu with alpha: %.2f\n", alpha);
+     serialPort.printf("im1,%.2f\n", alpha);
+ }
 
   int idx;
   char buf[200];

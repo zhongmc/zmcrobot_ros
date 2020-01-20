@@ -91,6 +91,9 @@ public:
     bool isOpen() const;
 
     int write(const void *data, int length);
+    
+    int printf(const char *format, ...);
+
     int read(void *data, int length);
 
     bool available( long timeOut );
