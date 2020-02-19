@@ -68,6 +68,7 @@
   <exec_depend>std_msgs</exec_depend>
   <exec_depend>tf</exec_depend>
 
+  <depend>yaml-cpp</depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

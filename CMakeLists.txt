@@ -16,6 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf
 )
 
+
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
@@ -143,7 +144,7 @@ link_directories(
 # add_executable(${PROJECT_NAME}_node src/zmcrobot_node.cpp)
 
 add_executable(zmcrobot_ros src/base_controller.cpp src/IRSensor.cpp)
-target_link_libraries( zmcrobot_ros ${catkin_LIBRARIES} pthread libSerialPort.a )
+target_link_libraries( zmcrobot_ros ${catkin_LIBRARIES} pthread  yaml-cpp libSerialPort.a )
 
 
 add_executable(teleop_key src/teleop_key.cpp)
