@@ -77,14 +77,6 @@
       </visual>
 
 
-      <visual> <!-- wheel_track -->
-        <geometry>
-          <box size="0.03 0.03 0.055"/>
-        </geometry>
-        <origin rpy="0 0 0" xyz="0.1 0 -0.016"/>
-        <material name="white"/>
-      </visual>
-
       <visual>  <!--kinect -->
         <geometry>
           <box size="0.03 0.16 0.02"/>
@@ -107,6 +99,15 @@
         </geometry>
         <origin rpy="1.57 0 0" xyz="-0.0 -0.03 -0.0325"/>
           <material name="white"/>
+      </visual>
+
+
+      <visual> <!-- wheel_track -->
+        <geometry>
+          <box size="0.03 0.03 0.055"/>
+        </geometry>
+        <origin rpy="0 0 0" xyz="0.1 0 -0.016"/>
+        <material name="white"/>
       </visual>
 
       <visual> <!--  wheel_third -->
