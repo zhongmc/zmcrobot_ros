@@ -1,0 +1,19 @@
+   
+<launch>
+  <master auto="start"/>
+
+ <node pkg="tf" type="static_transform_publisher" name="map_to_odom" args="0.0 0.0 0.0 0 0 0.0 /map /odom 1000"/>
+
+    <node name="base_controller_node" pkg="zmcrobot_ros" type="zmcrobot_ros" output="screen">
+            <param name="port" value="/dev/ttyACM0"/>
+            <!-- param name="port" value="/dev/ttyUSB0" /-->
+            <param name="baud" value="115200" />
+            <param name="timeout" value="500000" />
+            <param name="simulate" value= "true" />
+            <param name="use_imu" value="true"/>
+            <param name="alpha"  value="0.6" />
+            <param name="calib_file" value="$(find zmcrobot_ros)/param/imu/imu_calib.yaml"/>
+
+    </node>
+
+</launch>
