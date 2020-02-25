@@ -143,9 +143,11 @@ link_directories(
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/zmcrobot_node.cpp)
 
-add_executable(zmcrobot_ros src/base_controller.cpp src/IRSensor.cpp)
-target_link_libraries( zmcrobot_ros ${catkin_LIBRARIES} pthread  yaml-cpp libSerialPort.a )
+# add_executable(zmcrobot_ros src/base_controller.cpp src/IRSensor.cpp)
+# target_link_libraries( zmcrobot_ros ${catkin_LIBRARIES} pthread  yaml-cpp libSerialPort.a )
 
+add_executable(zmcrobot_ros src/base_controller.cpp src/IRSensor.cpp src/serialport.cpp)
+target_link_libraries( zmcrobot_ros ${catkin_LIBRARIES} pthread  yaml-cpp )
 
 add_executable(teleop_key src/teleop_key.cpp)
 target_link_libraries( teleop_key ${catkin_LIBRARIES}  )
