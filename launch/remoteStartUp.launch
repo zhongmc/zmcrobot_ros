@@ -5,23 +5,6 @@
 
  <node pkg="tf" type="static_transform_publisher" name="map_to_odom" args="0.0 0.0 0.0 0 0 0.0 /map /odom 1000"/>
 
-  <node pkg="tf" type="static_transform_publisher" name="base_link_to_laser" 
-	    args="0.0 0 0.0 0 0 0 /base_link /scan 100" />
-
-	<node pkg="depthimage_to_laserscan" type="depthimage_to_laserscan" name="depthimage_to_laserscan" output="screen">
-
-		<remap from="image" to="/camera/depth_registered/image_raw" />
-		<remap from="camera_info" to="/camera/depth_registered/camera_info" />
-		<remap from="scan" to="/scan" />
-
-		<param name="scan_height" value="1"/>
-		<param name="scan_time" value="0.05"/>
-		<param name="range_min" value="0.5"/>
-		<param name="range_max" value="5.5"/>
-		<param name="output_frame_id" value="/scan" />
-
-	</node>
-
     <!-- Filter and fuse raw imu data -->
     <node pkg="imu_filter_madgwick" type="imu_filter_node" name="imu_filter_madgwick" output="screen" respawn="false" >
         <param name="fixed_frame" value="base_link" />
@@ -46,9 +29,5 @@
         <remap from="odometry/filtered" to="odom" />
         <rosparam command="load" file="$(find zmcrobot_ros)/param/ekf/robot_localization.yaml" /> 
     </node>
-
-
-  <include file="$(find zmcrobot_ros)/param/navigation/xtion_gmapping.xml"/> 
-
 
 </launch>

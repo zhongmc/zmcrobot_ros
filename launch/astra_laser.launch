@@ -1,5 +1,5 @@
 <launch>
-	<include file="$(find astra_launch)/launch/astra.launch"/>
+	<!-- include file="$(find astra_launch)/launch/astra.launch"/ -->
 	<node pkg="depthimage_to_laserscan" type="depthimage_to_laserscan" name="depthimage_to_laserscan" output="screen">
 
 		<remap from="image" to="/camera/depth_registered/image_raw" />
