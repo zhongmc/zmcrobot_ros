@@ -2,7 +2,7 @@
 <launch>
   <master auto="start"/>
 
- <node pkg="tf" type="static_transform_publisher" name="map_to_odom" args="0.0 0.0 0.0 0 0 0.0 /map /odom 1000"/>
+ <!-- node pkg="tf" type="static_transform_publisher" name="map_to_odom" args="0.0 0.0 0.0 0 0 0.0 /map /odom 1000"/ -->
 
     <node name="base_controller_node" pkg="zmcrobot_ros" type="zmcrobot_ros" output="screen">
             <!-- param name="port" value="/dev/ttyACM0" / -->
