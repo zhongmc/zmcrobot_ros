@@ -2,13 +2,10 @@
 <launch>
   <master auto="start"/>
   <include file="$(find zmcrobot_ros)/launch/urdf.launch" />
-
  <node pkg="tf" type="static_transform_publisher" name="map_to_odom" args="0.0 0.0 0.0 0 0 0.0 /map /odom 1000"/>
-
 
  <!-- Publish static transform from base_footprint to base_link -->
     <node pkg="tf" type="static_transform_publisher" name="base_link_to_imu_link" args="0 0 0 0 0 0  base_link  imu_link  100"/>
-
 
     <!-- Filter and fuse raw imu data -->
     <node pkg="imu_filter_madgwick" type="imu_filter_node" name="imu_filter_madgwick" output="screen" respawn="false" >
@@ -19,12 +16,8 @@
         <param name="world_frame" value="enu" />
         <param name="orientation_stddev" value="0.0" />
     </node>
-
     <!-- Publish static transform from base_footprint to base_link -->
     <!-- node pkg="tf" type="static_transform_publisher" name="base_footprint_to_base_link" args="0 0 0 0 0 0  base_footprint   base_link 100"/ -->
-
-
-
     <!-- Odom-IMU Extended Kalman Filter-->
     <node pkg="robot_localization" type="ekf_localization_node" name="ekf_localization"> 
         <remap from="odometry/filtered" to="odom" />

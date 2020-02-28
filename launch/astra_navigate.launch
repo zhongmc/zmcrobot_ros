@@ -1,5 +1,4 @@
 <launch>
-  <node pkg="tf" type="static_transform_publisher" name="base_link_to_laser" args="0 0 0 0 0 0 /base_link /scan 100" />
   <include file="$(find zmcrobot_ros)/launch/astra_laser.launch"/>
   <arg name="map_file" default="$(find zmcrobot_ros)/maps/house.yaml"/>
   <node pkg="map_server" name="map_server"  type="map_server" args="$(arg map_file)" />

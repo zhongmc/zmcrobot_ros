@@ -1,7 +1,4 @@
 <launch>
-  <node pkg="tf" type="static_transform_publisher" name="base_link_to_laser" 
-	    args="0.0 0 0.0 0 0 0 /base_link /scan 100" />
-  <include file="$(find zmcrobot_ros)/launch/astra_laser.launch"/> 
+   <include file="$(find zmcrobot_ros)/launch/astra_laser.launch"/> 
   <include file="$(find zmcrobot_ros)/param/navigation/xtion_gmapping.xml"/> 
-  <!--include file="$(find rikirobot)/param/xtion_move_base.xml"/-->
 </launch>
