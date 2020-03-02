@@ -34,7 +34,7 @@
         <param name="orientation_stddev" value="0.0" />
        </node>
 
- <!-- Publish static transform from base_footprint to base_link -->
+ <!-- Publish static transform from imu_link  to base_link -->
     <node pkg="tf" type="static_transform_publisher" name="base_link_to_imu_link" args="0 0 0 0 0 0  base_link  imu_link  100"/>
 
 
