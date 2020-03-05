@@ -4,7 +4,7 @@ echo ""
 echo "This script copies a udev rule to /etc/dev/rules.d to facilitate bringing"
 echo ""
 
-sudo cp `rospack find zmcrobot_ros`/55-zmcrobot-arduino.rules /etc/udev/rules.d
+sudo cp `rospack find zmcrobot_ros`/50-arduino.rules /etc/udev/rules.d
 
 echo ""
 echo "restarting udev"
