@@ -23,6 +23,8 @@
 
 #include "yaml-cpp/yaml.h"
 
+#include "zmcrobot_ros/ExecCmd.h"
+
 using namespace std;
 
 int getIntsFromStr(int *ints, const char *buf, int count);
@@ -512,6 +514,17 @@ void handle_twist(const geometry_msgs::Twist &cmd_msg)
   cout << "send cmd:" << cmd;
 }
 
+bool execCmd(zmcrobot_ros::ExecCmd::Request &req, 
+          zmcrobot_ros::ExecCmd::Response &res )
+          {
+            cout << "exec cmd: " << req.cmd << endl;
+            res.ret = "OK";
+            if (m_pSerialPort != NULL)
+              m_pSerialPort->write(req.cmd, strlen(req.cmd));
+            return true;
+          }
+
+
 int main(int argc, char **argv)
 {
 
@@ -519,6 +532,8 @@ int main(int argc, char **argv)
 
   ros::NodeHandle nh;
   ros::Subscriber sub = nh.subscribe("cmd_vel", 50, handle_twist);
+
+ ros::ServiceServer service = nh.advertiseService("exec_cmd", execCmd);
 
 //本节点空间
 // 波浪符代表节点句柄的命名空间，其作用与C++的”this”指针和python中的”self”类似.在ros中可以使用 roslaunch 进行参数传递. 在 launch 标签内的是全局参数，而在node 标签内的则是局部参数。如果需要取全局的,需要名字前面加'/'; 如果要用 nh 取参数,则需要在名字前面加 node name : "nodename/paramnane"
