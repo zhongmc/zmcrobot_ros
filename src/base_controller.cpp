@@ -202,7 +202,9 @@ void SerialMsgHandler::serialMsgLoop(long timeOut)
           {
             cout << idx << ": " <<  buf;
             
-            std_msgs::String msg = buf;
+            std_msgs::String msg;
+            msg.data  = buf;
+          
             robot_msg_pub.publish( msg );
           }
           idx = 0;

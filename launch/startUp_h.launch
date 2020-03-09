@@ -12,7 +12,7 @@
             <param name="simulate" value= "true" />
             <param name="use_imu" value="true"/>
             <param name="alpha"  value="0.6" />
-            <param name="calib_file" value="$(find zmcrobot_ros)/param/imu/imu_calib.yaml"/>
+            <param name="calib_file" value="$(find zmcrobot_ros)/param/imu/imu_calib_h.yaml"/>
 
     </node>
 
