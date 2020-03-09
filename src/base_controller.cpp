@@ -18,12 +18,13 @@
 #include "serialport.h"
 #include <signal.h>
 #include <termios.h>
-
 #include "IRSensor.h"
-
 #include "yaml-cpp/yaml.h"
-
 #include "zmcrobot_ros/ExecCmd.h"
+#include "std_msgs/String.h"
+#include <sstream>
+
+
 
 using namespace std;
 
@@ -50,6 +51,7 @@ private:
   ros::Publisher  imu_raw_pub;
   ros::Publisher imu_mag_pub;
 
+  ros::Publisher robot_msg_pub;
 
   tf::TransformBroadcaster broadcaster;
 
@@ -87,9 +89,10 @@ SerialMsgHandler::SerialMsgHandler(SerialPort *pSerialPort) : m_beQuit(false),
   cloud_pub = nh_.advertise<sensor_msgs::PointCloud>("cloud", 50);
   imu_pub = nh_.advertise<sensor_msgs::Imu>("imu_arduino", 20);
 
-    imu_raw_pub = nh_.advertise<sensor_msgs::Imu>("imu/data_raw", 10);
-    imu_mag_pub = nh_.advertise<sensor_msgs::MagneticField>("imu/mag", 10);
- 
+  imu_raw_pub = nh_.advertise<sensor_msgs::Imu>("imu/data_raw", 10);
+  imu_mag_pub = nh_.advertise<sensor_msgs::MagneticField>("imu/mag", 10);
+  
+  robot_msg_pub = nh_.advertise<std_msgs::String>("robot_msg", 50);
 
   irSensors[0] = new IRSensor(-0.073, 0.066, M_PI / 2, GP2Y0A21);
   irSensors[1] = new IRSensor(0.061, 0.05, M_PI / 4, GP2Y0A21); // 0.16,0.045, PI/6 0.075, 0.035
@@ -198,6 +201,9 @@ void SerialMsgHandler::serialMsgLoop(long timeOut)
           else if( idx > 2 )
           {
             cout << idx << ": " <<  buf;
+            
+            std_msgs::String msg = buf;
+            robot_msg_pub.publish( msg );
           }
           idx = 0;
         }
@@ -531,12 +537,10 @@ int main(int argc, char **argv)
   ros::NodeHandle nh;
   ros::Subscriber sub = nh.subscribe("cmd_vel", 50, handle_twist);
 
- ros::ServiceServer service = nh.advertiseService("exec_cmd", execCmd);
-
+  ros::ServiceServer service = nh.advertiseService("exec_cmd", execCmd);
 //本节点空间
 // 波浪符代表节点句柄的命名空间，其作用与C++的”this”指针和python中的”self”类似.在ros中可以使用 roslaunch 进行参数传递. 在 launch 标签内的是全局参数，而在node 标签内的则是局部参数。如果需要取全局的,需要名字前面加'/'; 如果要用 nh 取参数,则需要在名字前面加 node name : "nodename/paramnane"
   ros::NodeHandle nlh("~");
-
   int baud = 115200;
   string port = "/dev/ttyACM0";
   bool simulateMode = true;
