@@ -4,7 +4,8 @@
 
 int main(int argc, char **argv)
 {
-    ros::init(argc, argc, "zmcrobot exec cmd");
+    ros::init(argc, argv, "exec_cmd_clt");
+
     if( argc != 2)
     {
         ROS_INFO("usage: execCmd cmd");
@@ -12,11 +13,11 @@ int main(int argc, char **argv)
     }
 
     ros::NodeHandle n;
-    ros::serviceClient client = n.serviceClient<zmcrobot_ros::ExecCmd>("exec cmd");
+    ros::ServiceClient client = n.serviceClient<zmcrobot_ros::ExecCmd>("exec_cmd");
     zmcrobot_ros::ExecCmd srv;
     srv.request.cmd = argv[1];
     if( client.call(srv))
-        ROS_INFO( srv.response.ret);
+        ROS_INFO( "svc ret: %s ", srv.response.retStr.c_str() );
     else
     {
         ROS_ERROR("Failed to call exec_cmd!");

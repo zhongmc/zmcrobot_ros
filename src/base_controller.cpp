@@ -257,9 +257,7 @@ void SerialMsgHandler::publishGeometryMsg(double x, double y, double theta, doub
   t.transform.rotation = odom_quat;
   t.header.stamp = current_time;
 
-// if publish, will make the map and odom fram unstable.......
-  // broadcaster.sendTransform(t);
-
+  broadcaster.sendTransform(t);
   nav_msgs::Odometry odom_msg;
   odom_msg.header.stamp = current_time;
   odom_msg.header.frame_id = odom;  //"odom_arduino";
@@ -518,9 +516,9 @@ bool execCmd(zmcrobot_ros::ExecCmd::Request &req,
           zmcrobot_ros::ExecCmd::Response &res )
           {
             cout << "exec cmd: " << req.cmd << endl;
-            res.ret = "OK";
+            res.retStr = "OK";
             if (m_pSerialPort != NULL)
-              m_pSerialPort->write(req.cmd, strlen(req.cmd));
+              m_pSerialPort->write((const void *)(char *)req.cmd.c_str(), req.cmd.length());
             return true;
           }
 
