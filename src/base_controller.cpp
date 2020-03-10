@@ -23,7 +23,7 @@
 #include "zmcrobot_ros/ExecCmd.h"
 #include "std_msgs/String.h"
 #include <sstream>
-
+#include <fstream>
 
 
 using namespace std;
@@ -109,7 +109,7 @@ SerialMsgHandler::SerialMsgHandler(SerialPort *pSerialPort) : m_beQuit(false),
   gRes = 0.0076294;
   mRes = 5.997558;
 
-  for( int i=-0; i<3; i++)
+  for( int i=0; i<3; i++)
   {
     accelBias[i] = 0;
     gyroBias[i] = 0;
@@ -149,7 +149,7 @@ void SerialMsgHandler::saveCalibration()
   }
   catch (...)
   {
-    return false;
+    return ;
   }
 
 }
@@ -245,18 +245,28 @@ void SerialMsgHandler::serialMsgLoop(long timeOut)
           }
           else if( idx >2 && buf[0] == 'R' && buf[1] == 'E')  //ready
           {
-            cout << "robot ready!" << endl;
-              cout << "send connect cmd CR..." << endl;
-              m_pSerialPort->write( "\ncr;\n" , 4);
+            ROS_INFO("Robot ready, send connect cmd cr;");
+            // cout << "robot ready!" << endl;
+            // cout << "send connect cmd CR..." << endl;
+             m_pSerialPort->write( "\ncr;\n" , 4);
+          }
+          else if( idx > 2 && buf[0] == 'C' && buf[1] == 'M')
+          {
+              ROS_INFO("cal data... %s", buf);
+
+              calibDataHandle(buf, idx);
+
           }
 
-          else if( idx > 2 )
+          else if( idx >= 2 )
           {
-            cout << idx << ": " <<  buf;
+            buf[idx-1]  = 0;
+            ROS_INFO("robot: %s", buf);
+            // cout << idx << ": " <<  buf;
             
             std_msgs::String msg;
-            msg.data  = buf;
-          
+            string msgStr = buf;
+            msg.data  = msgStr;
             robot_msg_pub.publish( msg );
           }
           idx = 0;
@@ -264,8 +274,9 @@ void SerialMsgHandler::serialMsgLoop(long timeOut)
 
         if (idx > 1020)
         {
-          cout << buf << endl;
-          cout << "read out of buff !" << endl;
+          ROS_INFO("Error Data: %s", buf );
+          // cout << buf << endl;
+          // cout << "read out of buff !" << endl;
           idx = 0;
         }
       }
@@ -289,7 +300,7 @@ void SerialMsgHandler::geometry_handle(char *buf, int len)
   int ret = getIntsFromStr(ints, buf + 2, 5);
   if (ret != 5)
   {
-    cout << "geometry error:" << ret << buf;
+    ROS_INFO("geo data error: %s, %d ", buf, len );
     return;
   }
 
@@ -352,7 +363,8 @@ void SerialMsgHandler::IRSensor_handle(char *buf, int len)
   int ret = getIntsFromStr(ints, buf + 2, 5);
   if (ret != 5)
   {
-    cout << "ir data error:" << ret << buf;
+    ROS_INFO("IR data err: %s ", buf );
+    //cout << "ir data error:" << ret << buf;
     return;
   }
 
@@ -391,30 +403,30 @@ void SerialMsgHandler::calibDataHandle(char *buf, int len)
     int ret = getDoublesFromStr(dins, buf + 5, 3);
     if( ret != 3 )
     {
-      cout << "cm data error:" << ret << buf;
+      ROS_INFO("Cal data err: %s", buf );
+      // cout << "cm data error:" << ret << buf;
       return;
     }
 
+    if( buf[2] == 'A' && buf[3] == 'B')
+    {
+      accelBias[0] = dins[0]/ 10000.0;
+      accelBias[1] = dins[1]/ 10000.0;
+      accelBias[2] = dins[2]/ 10000.0;
+      return;
+    }
 
-   accelBias[i] = 0;
-    gyroBias[i] = 0;
-    magBias[i] = 0;
-    magScale[i] = 1;
-    magCalibration[i] = 1;
-
-    double *p = null;
-    if( buf[2] == "A" && buf[3] == 'B')
-      p = accelBias;
-    else if( buf[2] == "G" && buf[3] == 'B')
+    double *p = NULL;
+     if( buf[2] == 'G' && buf[3] == 'B')
       p = gyroBias;
-    else if( buf[2] == "M" && buf[3] == 'B')
+    else if( buf[2] == 'M' && buf[3] == 'B')
       p = magBias;
-    else if( buf[2] == "M" && buf[3] == 'S')
+    else if( buf[2] == 'M' && buf[3] == 'S')
       p = magScale;
-    else if( buf[2] == "M" && buf[3] == 'C')
+    else if( buf[2] == 'M' && buf[3] == 'C')
       p = magCalibration;
 
-    if( p == null )
+    if( p == NULL )
       return;
     for( int i=0; i<3; i++ )
     {
@@ -429,7 +441,7 @@ void SerialMsgHandler::IMU_RawDataHandle(char *buf, int len)
   int ret = getIntsFromStr(ints, buf + 2, 9);
   if (ret != 9)
   {
-    cout << "im raw data error:" << ret << buf;
+    ROS_INFO("IM raw data err: %s", buf );
     return;
   }
 
@@ -487,7 +499,7 @@ void SerialMsgHandler::IMU_handle(char *buf, int len)
   int ret = getIntsFromStr(ints, buf + 2, 4);
   if (ret != 4)
   {
-    cout << "im data error:" << ret << buf;
+    ROS_INFO("IM data err: %s", buf );
     return;
   }
 
@@ -607,7 +619,9 @@ void handle_twist(const geometry_msgs::Twist &cmd_msg)
   if (m_pSerialPort != NULL)
     m_pSerialPort->write(cmd, strlen(cmd));
 
-  cout << "send cmd:" << cmd;
+  ROS_INFO("twist cmd:%s", cmd  );
+  
+  
 }
 
 
@@ -616,9 +630,10 @@ bool mSaveCalibration = false;
 bool execCmd(zmcrobot_ros::ExecCmd::Request &req, 
           zmcrobot_ros::ExecCmd::Response &res )
           {
-            cout << "exec cmd: " << req.cmd << endl;
+            // cout << "exec cmd: " << req.cmd << endl;
+           ROS_INFO("Exec CMD:%s", req.cmd.c_str());
             res.retStr = "OK";
-            if( req.cmd == 'sc;' || req.cmd == 'sc' )
+            if( req.cmd == "sc;" || req.cmd == "sc" )
               mSaveCalibration = true;
 
             if (m_pSerialPort != NULL)
