@@ -29,6 +29,7 @@
 using namespace std;
 
 int getIntsFromStr(int *ints, const char *buf, int count);
+int getDoublesFromStr(double *dins, const char *buf, int count );
 
 class SerialMsgHandler
 {
@@ -39,6 +40,7 @@ public:
   bool m_beQuit;
 
   void loadCalibrateParams(string fileName);
+  void saveCalibration();
 
 private:
   SerialPort *m_pSerialPort;
@@ -60,12 +62,13 @@ private:
 
   IRSensor *irSensors[5];
 
+  string calFileName; 
 
   double aRes, gRes, mRes;
 
   double accelBias[3], gyroBias[3], magBias[3];
   double magScale[3];
-double magCalibration[3];    //onboard calibration of mag
+  double magCalibration[3];    //onboard calibration of mag
 
 
 
@@ -74,6 +77,8 @@ private:
   void IRSensor_handle(char *buf, int len);
   void IMU_handle(char *buf, int len);
   void IMU_RawDataHandle(char *buf, int len );
+  void calibDataHandle(char *buf, int len );
+
 
   void publishGeometryMsg(double x, double y, double theta, double w, double v);
 };
@@ -99,18 +104,65 @@ SerialMsgHandler::SerialMsgHandler(SerialPort *pSerialPort) : m_beQuit(false),
   irSensors[2] = new IRSensor(0.072, 0.0, 0, GP2Y0A21);
   irSensors[3] = new IRSensor(0.061, -0.05, -M_PI / 4, GP2Y0A21);
   irSensors[4] = new IRSensor(-0.073, -0.066, -M_PI / 2, GP2Y0A21);
+
+  aRes = 0.000061035;
+  gRes = 0.0076294;
+  mRes = 5.997558;
+
+  for( int i=-0; i<3; i++)
+  {
+    accelBias[i] = 0;
+    gyroBias[i] = 0;
+    magBias[i] = 0;
+    magScale[i] = 1;
+    magCalibration[i] = 1;
+  }
+
 }
+
+
+void SerialMsgHandler::saveCalibration()
+{
+
+  
+  YAML::Node node;
+
+    node["res"].push_back( aRes );
+    node["res"].push_back( gRes );
+    node["res"].push_back( mRes );
+
+   for (int i = 0; i < 3; i++)
+    {
+      node["AccelBias"].push_back( accelBias[i] );
+      node["GyroBias"].push_back( gyroBias[i] );
+      node["MagBias"].push_back( magBias[i] );
+      node["Scale"].push_back( magScale[i] );
+      node["MagCalibration"].push_back( magCalibration[i] );
+    }
+
+  try
+  {
+    std::ofstream fout;
+    fout.open(calFileName );
+    fout << node;
+    fout.close();
+  }
+  catch (...)
+  {
+    return false;
+  }
+
+}
+
 
 void SerialMsgHandler::loadCalibrateParams(string fileName )
 {
 
   try
   {
-
+    calFileName = fileName;
     cout << "Load calib file " << fileName << endl ;
-
     YAML::Node node = YAML::LoadFile(fileName);
-
     assert(node["res"].IsSequence() && node["res"].size() == 3);
     assert(node["AccelBias"].IsSequence() && node["AccelBias"].size() == 3);
     assert(node["GyroBias"].IsSequence() && node["GyroBias"].size() == 3);
@@ -332,6 +384,44 @@ void SerialMsgHandler::IRSensor_handle(char *buf, int len)
 }
 
 
+
+void SerialMsgHandler::calibDataHandle(char *buf, int len)
+{
+    double dins[3];
+    int ret = getDoublesFromStr(dins, buf + 5, 3);
+    if( ret != 3 )
+    {
+      cout << "cm data error:" << ret << buf;
+      return;
+    }
+
+
+   accelBias[i] = 0;
+    gyroBias[i] = 0;
+    magBias[i] = 0;
+    magScale[i] = 1;
+    magCalibration[i] = 1;
+
+    double *p = null;
+    if( buf[2] == "A" && buf[3] == 'B')
+      p = accelBias;
+    else if( buf[2] == "G" && buf[3] == 'B')
+      p = gyroBias;
+    else if( buf[2] == "M" && buf[3] == 'B')
+      p = magBias;
+    else if( buf[2] == "M" && buf[3] == 'S')
+      p = magScale;
+    else if( buf[2] == "M" && buf[3] == 'C')
+      p = magCalibration;
+
+    if( p == null )
+      return;
+    for( int i=0; i<3; i++ )
+    {
+      *(p+i) = dins[i];
+    }
+}
+
 void SerialMsgHandler::IMU_RawDataHandle(char *buf, int len)
 {
     int ints[9];
@@ -520,11 +610,17 @@ void handle_twist(const geometry_msgs::Twist &cmd_msg)
   cout << "send cmd:" << cmd;
 }
 
+
+bool mSaveCalibration = false;
+
 bool execCmd(zmcrobot_ros::ExecCmd::Request &req, 
           zmcrobot_ros::ExecCmd::Response &res )
           {
             cout << "exec cmd: " << req.cmd << endl;
             res.retStr = "OK";
+            if( req.cmd == 'sc;' || req.cmd == 'sc' )
+              mSaveCalibration = true;
+
             if (m_pSerialPort != NULL)
               m_pSerialPort->write((const void *)(char *)req.cmd.c_str(), req.cmd.length());
             return true;
@@ -621,6 +717,12 @@ int main(int argc, char **argv)
     // ros::topic::waitForMessage<geometry_msgs::Vector3Stamped>("rpm", n, d);
     current_time = ros::Time::now();
 
+    if( mSaveCalibration )
+    {
+      ROS_INFO("do save calibration ... ");
+      msgHandler.saveCalibration();
+      mSaveCalibration = false;
+    }
     r.sleep();
   }
 
@@ -637,6 +739,25 @@ int getIntsFromStr(int *ints, const char *buf, int count)
   while (cnt < count)
   {
     ints[cnt++] = atoi(p);
+    p = strchr(p, ',');
+    if (p == NULL)
+      return cnt;
+    p++;
+  }
+  return cnt;
+}
+
+
+
+int getDoublesFromStr(double *dins, const char *buf, int count)
+{
+  if (dins == NULL || buf == NULL)
+    return 0;
+  int cnt = 0;
+  const char *p = buf;
+  while (cnt < count)
+  {
+    dins[cnt++] = atof(p);
     p = strchr(p, ',');
     if (p == NULL)
       return cnt;
