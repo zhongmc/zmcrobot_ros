@@ -31,6 +31,30 @@ using namespace std;
 int getIntsFromStr(int *ints, const char *buf, int count);
 int getDoublesFromStr(double *dins, const char *buf, int count );
 
+
+ int byteToInt16(char *data, int offset )
+	{
+		int value = ((data[offset+1] & 0x7f)<<8) | (data[offset] & 0xff);
+		
+		if( (data[offset+1] & 0x80) != 0  )
+		{
+			value = -value;
+		}
+		return value;
+	}
+
+ int byteToInt32(char *data, int offset )
+	{
+		int value = ((data[offset+3] & 0x7f)<<24) | (data[offset+2] & 0xff << 16)| (data[offset+1] & 0xff << 8) | (data[offset] & 0xff);
+		
+		if( (data[offset+3] & 0x80) != 0  )
+		{
+			value = -value;
+		}
+		return value;
+	}
+
+
 class SerialMsgHandler
 {
 public:
@@ -70,16 +94,22 @@ private:
   double magScale[3];
   double magCalibration[3];    //onboard calibration of mag
 
-
+  bool inBinaryPkg;
+  int binaryPkgLen;
 
 private:
+  void comDataReaded(char *buf, int len );
   void geometry_handle(char *buf, int len);
   void IRSensor_handle(char *buf, int len);
   void IMU_handle(char *buf, int len);
-  void IMU_RawDataHandle(char *buf, int len );
   void calibDataHandle(char *buf, int len );
 
+  void BinaryComDataReaded(char *buf, int len );
+  void IMU_RawDataHandle(char *buf, int len );
 
+  void IMURawDataHandle(char *buf, int len);
+  void RobotStateHandle(char *buf, int len );
+  
   void publishGeometryMsg(double x, double y, double theta, double w, double v);
 };
 
@@ -117,6 +147,9 @@ SerialMsgHandler::SerialMsgHandler(SerialPort *pSerialPort) : m_beQuit(false),
     magScale[i] = 1;
     magCalibration[i] = 1;
   }
+
+  inBinaryPkg = false;
+  binaryPkgLen = -1;
 
 }
 
@@ -203,92 +236,245 @@ void SerialMsgHandler::loadCalibrateParams(string fileName )
 
 
 
+
 void SerialMsgHandler::serialMsgLoop(long timeOut)
 {
 
   int idx = 0;
-  char buf[1024];
+  char comBuffer[1024];
   char ch;
-
+  int bufOff = 0;
+ 
+  char readByte;
   cout << "Serial read thead started..." << endl;
   while (true)
   {
+
     if (m_pSerialPort->available(timeOut))
     {
-      while (true)
+      m_pSerialPort->read(&readByte, 1);
+      if( inBinaryPkg )
       {
-        int ret = m_pSerialPort->read(&ch, 1);
-        if (ret != 1)
-          break;
-
-        buf[idx++] = ch;
-
-        if (ch == '\r' || ch == '\n')
+        if( binaryPkgLen == -1 )
         {
-          buf[idx] = '\0';
-          if (idx > 2 && buf[0] == 'R' && buf[1] == 'P')
-          {
-
-            geometry_handle(buf, idx);
-          }
-          else if (idx > 2 && buf[0] == 'I' && buf[1] == 'R')
-          {
-            IRSensor_handle(buf, idx);
-          }
-          else if (idx > 2 && buf[0] == 'I' && buf[1] == 'M')
-          {
-            IMU_handle(buf, idx);
-          }
-          else if( idx > 2 && buf[0] == 'R' && buf[1] == 'D' ) //IMU raw data
-          {
-              IMU_RawDataHandle(buf, idx );
-          }
-          else if( idx >2 && buf[0] == 'R' && buf[1] == 'E')  //ready
-          {
-            ROS_INFO("Robot ready, send connect cmd cr;");
-            // cout << "robot ready!" << endl;
-            // cout << "send connect cmd CR..." << endl;
-             m_pSerialPort->write( "\ncr;\n" , 4);
-          }
-          else if( idx > 2 && buf[0] == 'C' && buf[1] == 'M')
-          {
-              ROS_INFO("cal data... %s", buf);
-
-              calibDataHandle(buf, idx);
-
-          }
-
-          else if( idx >= 2 )
-          {
-            buf[idx-1]  = 0;
-            ROS_INFO("robot: %s", buf);
-            // cout << idx << ": " <<  buf;
-            
-            std_msgs::String msg;
-            string msgStr = buf;
-            msg.data  = msgStr;
-            robot_msg_pub.publish( msg );
-          }
-          idx = 0;
+          binaryPkgLen = readByte;
+          comBuffer[bufOff++] = readByte;
+          continue;
         }
-
-        if (idx > 1020)
+        comBuffer[bufOff++] = readByte;
+        if( bufOff >= binaryPkgLen + 2 ) //full pkg readed
         {
-          ROS_INFO("Error Data: %s", buf );
-          // cout << buf << endl;
-          // cout << "read out of buff !" << endl;
-          idx = 0;
+          BinaryComDataReaded(comBuffer, bufOff);
+          bufOff = 0;
+          inBinaryPkg = false;
+          binaryPkgLen = -1;
         }
+        continue;
       }
-    }
 
+      if( readByte > 0x7f ) //binary package
+      {
+        bufOff = 0;
+        inBinaryPkg = true;
+        binaryPkgLen = -1;
+        comBuffer[bufOff++] = readByte;
+          continue;
+      }
+      if (readByte == '\r' || readByte == '\n'  || readByte == ';') {
+        comDataReaded(comBuffer, bufOff);
+        bufOff = 0;
+        continue;
+      }
+      comBuffer[bufOff++] = readByte;
+      if (bufOff >= 1020) {
+          ROS_INFO("Error Data: %s", comBuffer );
+          bufOff = 0;
+      }
+     
+    }
     if (m_beQuit)
     {
       cout << "required to quit, close serial thread!" << endl;
       break;
     }
+
   }
 }
+
+
+void SerialMsgHandler::comDataReaded(char *buf, int len )
+{
+  if( len < 2 )
+  {
+   // ROS_INFO("com date err:  %s", buf);
+    return;
+  }
+
+  if ( buf[0] == 'R' && buf[1] == 'P')
+  {
+    geometry_handle(buf, len);
+  }
+  else if (buf[0] == 'I' && buf[1] == 'R')
+  {
+    IRSensor_handle(buf, len);
+  }
+  else if (buf[0] == 'I' && buf[1] == 'M')
+  {
+    IMU_handle(buf, len);
+  }
+  else if( buf[0] == 'R' && buf[1] == 'D' ) //IMU raw data
+  {
+    IMU_RawDataHandle(buf, len );
+  }
+  else if( buf[0] == 'R' && buf[1] == 'E')  //ready
+  {
+    ROS_INFO("Robot ready, send connect cmd cr;");
+            // cout << "robot ready!" << endl;
+            // cout << "send connect cmd CR..." << endl;
+    m_pSerialPort->write( "\ncr;\n" , 4);
+  }
+  else if( buf[0] == 'C' && buf[1] == 'M')
+  {
+    ROS_INFO("cal data... %s", buf);
+    calibDataHandle(buf, len);
+  }
+  else
+  {
+     buf[len]  = 0;
+    ROS_INFO("robot: %s", buf);
+            // cout << idx << ": " <<  buf;
+    std_msgs::String msg;
+    string msgStr = buf;
+    msg.data  = msgStr;
+    robot_msg_pub.publish( msg );
+  }
+}
+
+void SerialMsgHandler::BinaryComDataReaded(char *buf, int len )
+{
+    if( buf[0] == 0xA0 || buf[0] == 0xA1)
+      RobotStateHandle(buf, len);
+    else if( buf[0] == 0xA2 )
+      IMURawDataHandle(buf, len);
+}
+
+
+  void SerialMsgHandler::IMURawDataHandle(char *buf, int len)
+  {
+      int16_t intValue[9];
+      uint8_t *raw = (uint8_t *)buf;
+
+      for( int i=0; i<len; i+=2 )
+        intValue[i/2] = ((int16_t)raw[2+i] <<8) | raw[2+i+1];
+
+      sensor_msgs::Imu corrected;
+
+        corrected.header.stamp = ros::Time::now();
+        corrected.header.frame_id = "imu_link";
+
+        //pass calibrated acceleration to corrected IMU data object
+        corrected.linear_acceleration.x = (double)intValue[0] * aRes - accelBias[0]; 
+        corrected.linear_acceleration.y = (double)intValue[1] * aRes - accelBias[1]; 
+        corrected.linear_acceleration.z = (double)intValue[2] * aRes - accelBias[2]; 
+        
+        //add calibration bias to  received angular velocity and pass to to corrected IMU data object
+        corrected.angular_velocity.x = ((double)intValue[3] * gRes - gyroBias[0]) * 0.0174533; 
+        corrected.angular_velocity.y = ((double)intValue[4] * gRes - gyroBias[1]) * 0.0174533; 
+        corrected.angular_velocity.z = ((double)intValue[5] * gRes - gyroBias[2]) * 0.0174533; 
+
+        // Convert gyroscope degrees/sec to radians/sec
+        // gx *= 0.0174533f;
+        // gy *= 0.0174533f;
+        // gz *= 0.0174533f;
+        //publish calibrated IMU data
+        imu_raw_pub.publish(corrected);
+
+      return;
+
+      if( len < 13 )  // no mag data
+        return;
+
+        sensor_msgs::MagneticField mag_msg;
+        mag_msg.header.stamp = ros::Time::now();
+        mag_msg.header.frame_id = "imu_link";
+        //scale received magnetic (miligauss to tesla)
+        mag_msg.magnetic_field.y = ( (double) intValue[6] * mRes *magCalibration[0] - magBias[0]) * magScale[0];    //   *mRes * magCalibration[0]
+        mag_msg.magnetic_field.x = ( (double) intValue[7] * mRes  *magCalibration[1] - magBias[1]) * magScale[1]; 
+        mag_msg.magnetic_field.z =  -( (double) intValue[8] * mRes *magCalibration[2]  - magBias[2]) * magScale[2]; 
+        
+        imu_mag_pub.publish(mag_msg);
+  }
+
+
+
+
+void SerialMsgHandler::IMU_handle(char *buf, int len)
+{
+ // cout << buf;
+
+ int ints[4];
+
+  int ret = getIntsFromStr(ints, buf + 2, 4);
+  if (ret != 4)
+  {
+    ROS_INFO("IM data err: %s", buf );
+    return;
+  }
+
+
+  // broadcaster.sendTransform(
+  //       tf::StampedTransform(
+  //         tf::Transform(tf::Quaternion(0, 0, 0, 1), tf::Vector3(0, 0.0, 0.0)),
+  //         ros::Time::now(), base_link, "imu_arduino"));
+	//ROS_INFO("Q: %d %d %d %d\n", ints[0], ints[1], ints[2], ints[3]);
+
+	sensor_msgs::Imu imu_data;
+            imu_data.header.stamp = ros::Time::now();
+            imu_data.header.frame_id = "imu_link"; // "imu_arduino";
+//            imu_data.orientation.x = (float)ints[2]/1000; //q3
+//            imu_data.orientation.y = -(float)ints[1]/1000; //-q2;
+//            imu_data.orientation.z = -(float)ints[0]/1000; //-q1;
+//            imu_data.orientation.w = (float)ints[3]/1000; //q4;
+
+//1230
+            imu_data.orientation.x = (float)ints[1]/1000; //q1
+            imu_data.orientation.y = (float)ints[2]/1000; //q2;
+            imu_data.orientation.z = (float)ints[3]/1000; //q3;
+            imu_data.orientation.w = (float)ints[0]/1000; //q0;
+
+            imu_pub.publish(imu_data);
+	
+}
+
+
+  void SerialMsgHandler::RobotStateHandle(char *buf, int len )
+  {
+        double x, y, theta, w, v;
+        int iVal;
+        iVal = byteToInt16(buf, 2); //((data[1] & 0xff)<<8) | (data[0] & 0xff);
+        x = (float) ((float)iVal/1000.0);
+
+        iVal = byteToInt16(buf, 4); //((data[3] & 0xff)<<8) | (data[2] & 0xff);
+        y = (float) ((float)iVal/1000.0);
+
+        iVal = byteToInt16(buf, 6); //((data[5] & 0xff)<<8) | (data[4] & 0xff);
+        theta = (float) ((float)iVal/1000.0);
+          
+        iVal = buf[8]&0xff;
+        v = (float)(float)iVal/100.0;
+
+        // iVal = data[9]&0xff;
+        // voltage = (float)(float)iVal/10.0;
+
+        if( buf[0] == 0xA1)
+        {
+          int leftTicks = byteToInt32(buf, 10);
+          int  rightTicks = byteToInt32(buf, 14);
+        }
+        publishGeometryMsg(x, y, theta, w, v);
+
+  }
+
 
 void SerialMsgHandler::geometry_handle(char *buf, int len)
 {
@@ -489,43 +675,6 @@ sensor_msgs::Imu corrected;
 
 }
 
-
-void SerialMsgHandler::IMU_handle(char *buf, int len)
-{
- // cout << buf;
-
- int ints[4];
-
-  int ret = getIntsFromStr(ints, buf + 2, 4);
-  if (ret != 4)
-  {
-    ROS_INFO("IM data err: %s", buf );
-    return;
-  }
-
-
-  broadcaster.sendTransform(
-      tf::StampedTransform(
-          tf::Transform(tf::Quaternion(0, 0, 0, 1), tf::Vector3(0, 0.0, 0.0)),
-          ros::Time::now(), base_link, "imu_arduino"));
-	//ROS_INFO("Q: %d %d %d %d\n", ints[0], ints[1], ints[2], ints[3]);
-
-	sensor_msgs::Imu imu_data;
-            imu_data.header.stamp = ros::Time::now();
-            imu_data.header.frame_id = "imu_arduino";
-//            imu_data.orientation.x = (float)ints[2]/1000; //q3
-//            imu_data.orientation.y = -(float)ints[1]/1000; //-q2;
-//            imu_data.orientation.z = -(float)ints[0]/1000; //-q1;
-//            imu_data.orientation.w = (float)ints[3]/1000; //q4;
-
-            imu_data.orientation.x = (float)ints[1]/1000; //q3
-            imu_data.orientation.y = (float)ints[2]/1000; //-q2;
-            imu_data.orientation.z = (float)ints[3]/1000; //-q1;
-            imu_data.orientation.w = (float)ints[0]/1000; //q4;
-
-            imu_pub.publish(imu_data);
-	
-}
 
 void serialMsgThread(SerialMsgHandler *pHandler, long timeout)
 {

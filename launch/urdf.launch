@@ -4,6 +4,6 @@
   <param name="robot_description" textfile="$(find zmcrobot_ros)/urdf/zmcrobot.urdf"/>
   <param name="use_gui" value="False"/>
 
-  <!--node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher"/-->
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/> 
+  <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher"/>
 </launch>
