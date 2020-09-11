@@ -3,9 +3,8 @@
   <!-- master auto="start"/>
   <include file="$(find zmcrobot_ros)/launch/urdf.launch" / -->
  <!-- Publish static transform from imu_link  to base_link -->
-    <node pkg="tf" type="static_transform_publisher" name="base_link_to_imu_link" args="0 0 0 0 0 0  /base_link   /imu_link  100"/>
+    <node pkg="tf" type="static_transform_publisher" name="imu_link_to_base_link" args="0 0 0 0 0 0  /base_link   /imu_link  100"/>
 
-    <node pkg="tf" type="static_transform_publisher" name="imu_link_to_base_link" args="0 0 0 0 0 0  /imu_link   /base_link  100"/>
 
     <!-- Filter and fuse raw imu data -->
     <node pkg="imu_filter_madgwick" type="imu_filter_node" name="imu_filter_madgwick" output="screen" respawn="false" >
