@@ -8,7 +8,7 @@
             <param name="port" value="/dev/ttyACM0" />
             <param name="baud" value="115200" />
             <param name="timeout" value="500000" />
-            <param name="simulate" value= "true" />
+            <param name="publish_tf" value= "true" />
             <param name="use_imu" value="true"/>
             <param name="alpha"  value="0.6" />
             <param name="calib_file" value="$(find zmcrobot_ros)/param/imu/imu_calib.yaml"/>

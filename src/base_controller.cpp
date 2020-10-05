@@ -66,6 +66,9 @@ public:
   void loadCalibrateParams(string fileName);
   void saveCalibration();
 
+//publish the odom to baselink trasfer if true
+  bool m_publish_tf;
+
 private:
   SerialPort *m_pSerialPort;
 
@@ -115,7 +118,7 @@ private:
 
 
 
-SerialMsgHandler::SerialMsgHandler(SerialPort *pSerialPort) : m_beQuit(false),
+SerialMsgHandler::SerialMsgHandler(SerialPort *pSerialPort) : m_beQuit(false), m_publish_tf(false),
                                                               base_link("base_link"),   //base_footprint
                                                               odom("odom")
 {
@@ -514,7 +517,9 @@ void SerialMsgHandler::publishGeometryMsg(double x, double y, double theta, doub
   t.transform.rotation = odom_quat;
   t.header.stamp = current_time;
 
-  broadcaster.sendTransform(t);
+  if( m_publish_tf )
+      broadcaster.sendTransform(t);
+
   nav_msgs::Odometry odom_msg;
   odom_msg.header.stamp = current_time;
   odom_msg.header.frame_id = odom;  //"odom_arduino";
@@ -810,13 +815,15 @@ int main(int argc, char **argv)
   bool use_imu = false;
   float alpha = 0.8;
 
+  bool publish_tf = false; // default to false, publish the odom to baselink transfer if true
   string calib_file;
 
   nlh.param("baud", baud, baud);
   nlh.param("port", port, port);
   nlh.param("simulate", simulateMode, simulateMode);
   nlh.param("timeout", timeout, timeout);
-  
+
+  nlh.param("publish_tf", publish_tf, publish_tf);  
   nlh.param("use_imu", use_imu, use_imu);
   nlh.param("alpha", alpha, alpha);
   nlh.param("calib_file", calib_file, calib_file);
@@ -824,12 +831,9 @@ int main(int argc, char **argv)
   // if( argc>2 )
   //     baudrate = atoi( argv[2]);
 
-	
-	cout << "value:" << port << endl;
-
+	// cout << "value:" << port << endl;
   SerialPort::OpenOptions options = SerialPort::defaultOptions;
   options.baudRate = SerialPort::BaudRateMake(baud);
-
   cout << "try to open port " << port << " at baudrate of " << baud << endl;
 
   SerialPort serialPort(port, options);
@@ -848,6 +852,11 @@ int main(int argc, char **argv)
   SerialMsgHandler msgHandler(&serialPort);
 
   msgHandler.loadCalibrateParams(calib_file);
+
+  if( publish_tf )
+      ROS_INFO("publish odom to base link transfer!\n");
+  
+  msgHandler.m_publish_tf = publish_tf;
 
   //start the serial msg read and handle thread
   std::thread msgHandleThread(serialMsgThread, &msgHandler, timeout);
