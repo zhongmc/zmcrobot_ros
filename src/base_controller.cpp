@@ -465,7 +465,7 @@ void SerialMsgHandler::IMU_handle(char *buf, int len)
           
         iVal = buf[8]&0xff;
         v = (float)(float)iVal/100.0;
-
+        w = 0;
         // iVal = data[9]&0xff;
         // voltage = (float)(float)iVal/10.0;
 
