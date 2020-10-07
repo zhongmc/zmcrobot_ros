@@ -4,7 +4,9 @@
 	<rosparam file="$(find zmcrobot_ros)/param/navigation/costmap_common_params.yaml" command="load" ns="local_costmap" />
     <rosparam file="$(find zmcrobot_ros)/param/navigation/local_costmap_params.yaml" command="load" />
     <rosparam file="$(find zmcrobot_ros)/param/navigation/global_costmap_params.yaml" command="load" />
+	<rosparam file="$(find zmcrobot_ros)/param/navigation/global_planner_params.yaml" command="load" />
 	<rosparam file="$(find zmcrobot_ros)/param/navigation/base_local_planner_params.yaml" command="load" />
+  <rosparam file="$(find zmcrobot_ros)/param/navigation/navfn_global_planner_params.yaml" command="load" />
     <rosparam file="$(find zmcrobot_ros)/param/navigation/move_base_params.yaml" command="load" />
   </node>
 </launch>
