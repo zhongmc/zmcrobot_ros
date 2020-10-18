@@ -1,5 +1,5 @@
 #frequency: 50
-frequency: 20
+frequency: 30
 two_d_mode: true
 diagnostics_agg: true
 
@@ -31,9 +31,9 @@ imu0: /imu/data
 # the most likely candidate is the x'' (acceleration) fr$
 # Just set it to false! (It's the first entry on the las$
 imu0_config: [false, false, false,
-              true, true, true,
+              false, false, true,
               false, false, false,
-              true, true, true,
+              false, false, false,
               true, true, true]
 
 imu0_differential: false
