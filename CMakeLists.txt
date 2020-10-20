@@ -154,6 +154,10 @@ target_link_libraries( teleop_key ${catkin_LIBRARIES}  )
 add_executable(exec_cmd src/ExecCmd.cpp)
 target_link_libraries( exec_cmd ${catkin_LIBRARIES}  )
 
+add_executable(odom_path src/OdomPath.cpp)
+target_link_libraries( odom_path ${catkin_LIBRARIES}  )
+
+
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
@@ -199,7 +203,7 @@ target_link_libraries( exec_cmd ${catkin_LIBRARIES}  )
 
 
 
-install(TARGETS zmcrobot_ros teleop_key exec_cmd
+install(TARGETS zmcrobot_ros teleop_key exec_cmd odom_path
         ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
         LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
         RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
