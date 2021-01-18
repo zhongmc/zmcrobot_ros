@@ -12,31 +12,33 @@ Startup:
     in nvidia:
          cd catkin_ws;
          source ./deve/setup.bash
-         roslaunch zmcrobot_ros startUp.launch
+         roslaunch zmcrobot_ros startUp.launch publish_tf:=true
+         # publish_tp:=true do not use ekf; when fase, need startFilter.launch in PC
 
 1. mapping:
 
         in nvidia:
          roslaunch zmcrobot_ros astra_laser.launch
-         roslaunch zmcrobot_ros astra_gmapping.launch
 
         in PC:
-         cd catkin_ws;
-         source ./deve/setup.bash
-         roslaunch startFilter.launch  #not neccessory
+        cd catkin_ws;
+        source ./deve/setup.bash
+        roslaunch startFilter.launch   # not neccessory when publish_tf:=true
+        roslaunch zmcrobot_ros astra_gmapping.launch
         rviz   #to see the visual
         rqt    #to see visual info ...
-    
+        roslaunch zmcrobot_ros startOdomPath.launch  #can show odom path in rviz
+
     2. navigation
         
         in nvidia:
          roslaunch zmcrobot_ros astra_laser.launch
-         roslaunch zmcrobot_ros astra_navigate.launch
 
         in PC:
          cd catkin_ws;
          source ./deve/setup.bash
-         roslaunch startFilter.launch  #not neccessory
+         roslaunch zmcrobot_ros astra_navigate.launch
+         roslaunch startFilter.launch  #not neccessory when publish_tf:=true
         rviz   #to see the visual
         rqt    #to see visual info ...
 
