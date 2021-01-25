@@ -66,12 +66,17 @@ public:
   void loadCalibrateParams(string fileName);
   void saveCalibration();
 
+  void setRecordData(bool val );
+  void recordSerialData(char *buf, int len );
+  void close();
 //publish the odom to baselink trasfer if true
   bool m_publish_tf;
+  bool m_record_data;
 
 private:
   SerialPort *m_pSerialPort;
-
+   
+   std::ofstream m_fout;
   ros::NodeHandle nh_;
   ros::Publisher odom_pub;
   ros::Publisher cloud_pub;
@@ -112,13 +117,23 @@ private:
 
   void IMURawDataHandle(char *buf, int len);
   void RobotStateHandle(char *buf, int len );
+
   
   void publishGeometryMsg(double x, double y, double theta, double w, double v);
 };
 
 
+void SerialMsgHandler::close()
+{
+  m_beQuit = true;
+  if( m_record_data )
+    m_fout.close();
 
-SerialMsgHandler::SerialMsgHandler(SerialPort *pSerialPort) : m_beQuit(false), m_publish_tf(false),
+    cout << "close the msg handler!" << endl;
+}
+
+SerialMsgHandler::SerialMsgHandler(SerialPort *pSerialPort) : m_beQuit(false), m_publish_tf(false), 
+                                                            m_record_data(false),
                                                               base_link("base_link"),   //base_footprint
                                                               odom("odom")
 {
@@ -156,6 +171,30 @@ SerialMsgHandler::SerialMsgHandler(SerialPort *pSerialPort) : m_beQuit(false), m
 
 }
 
+
+void SerialMsgHandler::recordSerialData(char *buf, int len )
+{
+    if( !m_record_data )
+      return;
+      // m_fout << "==" << len << inBinaryPkg << binaryPkgLen << ":";
+      m_fout.write(buf, len);
+}
+
+void SerialMsgHandler::setRecordData(bool val )
+{
+   m_record_data = val;
+   if( val )
+   {
+     try{
+       m_fout.open("/home/zhongmc/serial_data.bin", ios::out | ios::binary);
+       cout << "Open the serial data file ..." <<  endl;
+   }
+   catch(...)
+   {
+
+   }
+   }
+}
 
 void SerialMsgHandler::saveCalibration()
 {
@@ -248,25 +287,39 @@ void SerialMsgHandler::serialMsgLoop(long timeOut)
   char ch;
   int bufOff = 0;
  
-  char readByte;
+  unsigned char readByte;
   cout << "Serial read thead started..." << endl;
   while (true)
   {
 
     if (m_pSerialPort->available(timeOut))
     {
-      m_pSerialPort->read(&readByte, 1);
+      int ret = m_pSerialPort->read(&readByte, 1);
+      if( ret <= 0 )
+      {
+        ROS_INFO("Error read serial: %d", ret );
+          continue;
+      }
+      
       if( inBinaryPkg )
       {
         if( binaryPkgLen == -1 )
         {
           binaryPkgLen = readByte;
-          comBuffer[bufOff++] = readByte;
+          if( binaryPkgLen <= 0  || binaryPkgLen > 120  )
+          {
+              bufOff = 0;
+              inBinaryPkg = false;
+              binaryPkgLen = -1;
+          }
+          else
+            comBuffer[bufOff++] = readByte;
           continue;
         }
         comBuffer[bufOff++] = readByte;
-        if( bufOff >= binaryPkgLen + 2 ) //full pkg readed
+        if( bufOff >= (binaryPkgLen + 2) ) //full pkg readed
         {
+          recordSerialData(comBuffer, bufOff );
           BinaryComDataReaded(comBuffer, bufOff);
           bufOff = 0;
           inBinaryPkg = false;
@@ -275,7 +328,7 @@ void SerialMsgHandler::serialMsgLoop(long timeOut)
         continue;
       }
 
-      if( readByte > 0x7f ) //binary package
+      if( readByte == 0xA0 || readByte == 0xA1 || readByte == 0xA2 || readByte == 0xA3 || readByte == 0xA4 ) //binary package
       {
         bufOff = 0;
         inBinaryPkg = true;
@@ -283,17 +336,24 @@ void SerialMsgHandler::serialMsgLoop(long timeOut)
         comBuffer[bufOff++] = readByte;
           continue;
       }
+
+        comBuffer[bufOff++] = readByte;
       if (readByte == '\r' || readByte == '\n'  || readByte == ';') {
-        comDataReaded(comBuffer, bufOff);
+                  recordSerialData(comBuffer, bufOff );
+                  comDataReaded(comBuffer, bufOff);
         bufOff = 0;
+        inBinaryPkg = false;
+        binaryPkgLen = -1;
         continue;
       }
-      comBuffer[bufOff++] = readByte;
       if (bufOff >= 1020) {
+          recordSerialData(comBuffer, bufOff );
           ROS_INFO("Error Data: %s", comBuffer );
           bufOff = 0;
+        inBinaryPkg = false;
+        binaryPkgLen = -1;
       }
-     
+ 
     }
     if (m_beQuit)
     {
@@ -302,6 +362,9 @@ void SerialMsgHandler::serialMsgLoop(long timeOut)
     }
 
   }
+  if( m_record_data )
+    m_fout.close();
+
 }
 
 
@@ -355,10 +418,21 @@ void SerialMsgHandler::comDataReaded(char *buf, int len )
 
 void SerialMsgHandler::BinaryComDataReaded(char *buf, int len )
 {
-    if( buf[0] == 0xA0 || buf[0] == 0xA1)
-      RobotStateHandle(buf, len);
-    else if( buf[0] == 0xA2 )
-      IMURawDataHandle(buf, len);
+    // recordSerialData("-BIN-", 5);
+    // recordSerialData(buf, 2);
+
+  unsigned char pkg = (unsigned char ) buf[0];
+
+    if(pkg == 0xA0 || pkg == 0xA1)
+    {
+      recordSerialData("-ST-", 4);
+       RobotStateHandle(buf, len);
+    }
+    else if( pkg == 0xA2 )
+    {
+      recordSerialData("-IMU-", 5);
+    IMURawDataHandle(buf, len);
+    }
 }
 
 
@@ -391,7 +465,7 @@ void SerialMsgHandler::BinaryComDataReaded(char *buf, int len )
         // gz *= 0.0174533f;
         //publish calibrated IMU data
         imu_raw_pub.publish(corrected);
-
+       
       return;
 
       if( len < 13 )  // no mag data
@@ -454,6 +528,8 @@ void SerialMsgHandler::IMU_handle(char *buf, int len)
   {
         double x, y, theta, w, v;
         int iVal;
+
+
         iVal = byteToInt16(buf, 2); //((data[1] & 0xff)<<8) | (data[0] & 0xff);
         x = (float) ((float)iVal/1000.0);
 
@@ -468,12 +544,17 @@ void SerialMsgHandler::IMU_handle(char *buf, int len)
         w = 0;
         // iVal = data[9]&0xff;
         // voltage = (float)(float)iVal/10.0;
-
-        if( buf[0] == 0xA1)
+        unsigned char pkg = (unsigned char)buf[0];
+        if( pkg == 0xA1)
         {
           int leftTicks = byteToInt32(buf, 10);
           int  rightTicks = byteToInt32(buf, 14);
         }
+
+        iVal = byteToInt16(buf, 20);
+        v = (float)iVal / 1000.0;
+        iVal = byteToInt16(buf, 22);
+        w = (float)iVal / 1000.0;
         publishGeometryMsg(x, y, theta, w, v);
 
   }
@@ -817,6 +898,8 @@ int main(int argc, char **argv)
 
   bool publish_tf = false; // default to false, publish the odom to baselink transfer if true
   string calib_file;
+  bool record_data  = false;
+
 
   nlh.param("baud", baud, baud);
   nlh.param("port", port, port);
@@ -824,6 +907,8 @@ int main(int argc, char **argv)
   nlh.param("timeout", timeout, timeout);
 
   nlh.param("publish_tf", publish_tf, publish_tf);  
+  nlh.param("record_data", record_data, record_data);
+
   nlh.param("use_imu", use_imu, use_imu);
   nlh.param("alpha", alpha, alpha);
   nlh.param("calib_file", calib_file, calib_file);
@@ -856,6 +941,12 @@ int main(int argc, char **argv)
   if( publish_tf )
       ROS_INFO("publish odom to base link transfer!\n");
   
+  if( record_data )
+  {
+    ROS_INFO("Record the serial data.\n" );
+    msgHandler.setRecordData( true );
+  }
+
   msgHandler.m_publish_tf = publish_tf;
 
   //start the serial msg read and handle thread
@@ -898,7 +989,8 @@ int main(int argc, char **argv)
     }
     r.sleep();
   }
-
+  cout << "Be quit... " << endl;
+  msgHandler.close();
   msgHandler.m_beQuit = true;
   serialPort.close();
 }

@@ -1,5 +1,6 @@
 <launch>
 	<arg name="publish_tf" default="false"/>
+  <arg name="record_data" default="false"/>
 	<arg name="calib_file" default="$(find zmcrobot_ros)/param/imu/imu_calib.yaml"/>
   <arg name="port" default="/dev/ttyACM0"/>
   <master auto="start"/>
@@ -11,6 +12,7 @@
             <param name="baud" value="115200" />
             <param name="timeout" value="500000" />
             <param name="publish_tf" value= "$(arg publish_tf)" />
+            <param name="record_data" value="$(arg record_data)" />
             <param name="use_imu" value="false"/>
             <param name="alpha"  value="0.6" />
             <param name="calib_file" value="$(arg calib_file)"/>

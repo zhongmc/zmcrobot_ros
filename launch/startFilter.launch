@@ -4,7 +4,8 @@
   <include file="$(find zmcrobot_ros)/launch/urdf.launch" / -->
  <!-- Publish static transform from imu_link  to base_link -->
     <!-- node pkg="tf" type="static_transform_publisher" name="imu_link_to_base_link" args="0 0 0 0 0 0  /base_link   /imu_link  100"/ -->
-
+	<arg name="publish_tf" default="false"/>
+ 
 
     <!-- Filter and fuse raw imu data -->
     <node pkg="imu_filter_madgwick" type="imu_filter_node" name="imu_filter_madgwick" output="screen" respawn="false" >
@@ -21,6 +22,7 @@
     <node pkg="robot_localization" type="ekf_localization_node" name="ekf_localization"> 
         <remap from="odometry/filtered" to="odom" />
         <rosparam command="load" file="$(find zmcrobot_ros)/param/ekf/robot_localization.yaml" /> 
+        <param name="publish_tf" value= "$(arg publish_tf)" />
     </node>
 
 </launch>
