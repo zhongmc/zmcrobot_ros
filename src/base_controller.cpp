@@ -15,6 +15,7 @@
 #include <thread>
 #include <errno.h>
 #include <string.h>
+#include <ctime>
 #include "serialport.h"
 #include <signal.h>
 #include <termios.h>
@@ -66,7 +67,9 @@ public:
   void loadCalibrateParams(string fileName);
   void saveCalibration();
 
-  void setRecordData(bool val );
+  void startRecordData();
+  void stopRecordData();
+
   void recordSerialData(char *buf, int len );
   void close();
 //publish the odom to baselink trasfer if true
@@ -180,21 +183,69 @@ void SerialMsgHandler::recordSerialData(char *buf, int len )
       m_fout.write(buf, len);
 }
 
-void SerialMsgHandler::setRecordData(bool val )
-{
-   m_record_data = val;
-   if( val )
-   {
-     try{
-       m_fout.open("/home/zhongmc/serial_data.bin", ios::out | ios::binary);
-       cout << "Open the serial data file ..." <<  endl;
+ void SerialMsgHandler::startRecordData()
+ {
+    if( m_record_data )
+    {
+
+        std_msgs::String msg;
+        string msgStr = "aready in record mode!";
+        msg.data  = msgStr;
+        robot_msg_pub.publish( msg );
+        cout << "in record data mode ..." <<endl;
+        return;
+    }
+
+  time_t curTime = time( NULL );
+  tm *tm = localtime( &curTime );
+  char tm_buf[30];
+  memset(tm_buf, 0, 30);
+  snprintf(tm_buf, 30, "/%d-%02d-%02d-%02d:%02d:%02d.bin", 
+            tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday,
+            tm->tm_hour, tm->tm_min, tm->tm_sec);
+  // cout<<tm_buf <<endl;
+  m_record_data = true;
+  try{
+
+      string fileName = getenv("HOME");
+    fileName.append(tm_buf);
+
+       m_fout.open(fileName, ios::out | ios::binary);
+       cout << "Open the serial data file :" <<fileName<< endl;
+      std_msgs::String msg;
+      string msgStr = "record serial data to: ";
+      msgStr.append( fileName);
+      msg.data  = msgStr;
+      robot_msg_pub.publish( msg );
+
    }
    catch(...)
    {
 
    }
-   }
-}
+
+ }
+
+  void SerialMsgHandler::stopRecordData()
+  {
+    if( !m_record_data )
+    {
+        std_msgs::String msg;
+        string msgStr = "not in record mode ! ";
+        msg.data  = msgStr;
+        robot_msg_pub.publish( msg );
+        return;
+    }
+    m_record_data = false;
+    m_fout.close();
+
+        std_msgs::String msg;
+        string msgStr = "Serial data record stoped. ";
+        msg.data  = msgStr;
+        robot_msg_pub.publish( msg );
+
+  }
+
 
 void SerialMsgHandler::saveCalibration()
 {
@@ -861,6 +912,8 @@ void handle_twist(const geometry_msgs::Twist &cmd_msg)
 
 
 bool mSaveCalibration = false;
+bool mStartRecord = false;
+bool mStopRecord = false;
 
 bool execCmd(zmcrobot_ros::ExecCmd::Request &req, 
           zmcrobot_ros::ExecCmd::Response &res )
@@ -868,6 +921,18 @@ bool execCmd(zmcrobot_ros::ExecCmd::Request &req,
             // cout << "exec cmd: " << req.cmd << endl;
            ROS_INFO("Exec CMD:%s", req.cmd.c_str());
             res.retStr = "OK";
+
+          if( req.cmd == "record" )
+          {
+              mStartRecord = true;
+              return true;
+          }
+          else if( req.cmd == "save")
+          {
+            mStopRecord = true;
+            return true;
+          }
+
             if( req.cmd == "sc;" || req.cmd == "sc" )
               mSaveCalibration = true;
 
@@ -916,6 +981,15 @@ int main(int argc, char **argv)
   // if( argc>2 )
   //     baudrate = atoi( argv[2]);
 
+//   time_t curTime = time( NULL );
+//   tm *tm = localtime( &curTime );
+//   char tm_buf[30];
+// memset(tm_buf, 0, 30);
+//   snprintf(tm_buf, 30, "%d-%02d-%02d  %02d:%02d:%02d", 
+//             tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday,
+//             tm->tm_hour, tm->tm_min, tm->tm_sec);
+//   cout<<tm_buf <<endl;
+
 	// cout << "value:" << port << endl;
   SerialPort::OpenOptions options = SerialPort::defaultOptions;
   options.baudRate = SerialPort::BaudRateMake(baud);
@@ -944,7 +1018,7 @@ int main(int argc, char **argv)
   if( record_data )
   {
     ROS_INFO("Record the serial data.\n" );
-    msgHandler.setRecordData( true );
+    msgHandler.startRecordData(); 
   }
 
   msgHandler.m_publish_tf = publish_tf;
@@ -987,6 +1061,23 @@ int main(int argc, char **argv)
       msgHandler.saveCalibration();
       mSaveCalibration = false;
     }
+
+
+    // bool mStartRecord = false;
+    // bool mStopRecord = false;
+
+    if( mStartRecord )
+    {
+      mStartRecord = false;
+      msgHandler.startRecordData();
+    }
+
+    if( mStopRecord )
+    {
+      mStopRecord = false;
+      msgHandler.stopRecordData();   // need thread sync
+    }
+
     r.sleep();
   }
   cout << "Be quit... " << endl;
