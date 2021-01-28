@@ -497,7 +497,13 @@ void SerialMsgHandler::BinaryComDataReaded(char *buf, int len )
 
       sensor_msgs::Imu corrected;
 
-        corrected.header.stamp = ros::Time::now();
+      ros::Time cur_time = ros::Time::now();
+      // broadcaster.sendTransform(
+      //   tf::StampedTransform(
+      //     tf::Transform(tf::Quaternion(0, 0, 0, 1), tf::Vector3(0, 0.0, 0.0)),
+      //     now, base_link, "imu_link"));
+
+        corrected.header.stamp =cur_time;
         corrected.header.frame_id = "imu_link";
 
         //pass calibrated acceleration to corrected IMU data object
@@ -651,6 +657,12 @@ void SerialMsgHandler::publishGeometryMsg(double x, double y, double theta, doub
 {
   ros::Time current_time;
   current_time = ros::Time::now();
+
+      // broadcaster.sendTransform(
+      //   tf::StampedTransform(
+      //     tf::Transform(tf::Quaternion(0, 0, 0, 1), tf::Vector3(0, 0.0, 0.0)),
+      //     current_time, base_link, "imu_link"));
+
 
   geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(theta);
 

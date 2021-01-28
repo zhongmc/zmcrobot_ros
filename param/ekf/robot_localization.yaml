@@ -1,5 +1,5 @@
 #frequency: 50
-frequency: 10
+frequency: 25
 two_d_mode: true
 diagnostics_agg: true
 
@@ -8,7 +8,7 @@ sensor_timeout: 0.2
 
 publish_tf: false
 
-
+transform_timeout: 0.02
 #x     , y     , z,
 #roll  , pitch , yaw,
 #vx    , vy    , vz,
