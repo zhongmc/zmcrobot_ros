@@ -32,7 +32,10 @@ odom0_relative: false
 #vroll , vpitch, vyaw,
 #ax    , ay    , az
 
-imu0: /imu/data
+
+# the imu_arduino from IMU6050 DMP output
+#imu0: /imu/data
+imu0: /imu_arduino
 # NOTE: If you find that your robot has x drift,
 # the most likely candidate is the x'' (acceleration) fr$
 # Just set it to false! (It's the first entry on the las$
