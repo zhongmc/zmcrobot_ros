@@ -1,7 +1,7 @@
 <launch>
 	<arg name="publish_tf" default="false"/>
   <arg name="record_data" default="false"/>
-	<arg name="calib_file" default="$(find zmcrobot_ros)/param/imu/imu_calib.yaml"/>
+	<arg name="calib_file" default="$(find zmcrobot_ros)/param/imu/imu_calib_dmp6050.yaml"/>
   <arg name="port" default="/dev/ttyACM0"/>
   <master auto="start"/>
    <include file="$(find zmcrobot_ros)/launch/urdf.launch" />
