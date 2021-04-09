@@ -121,6 +121,8 @@ private:
   void IMU_RawDataHandle(char *buf, int len );
 
   void IMURawDataHandle(char *buf, int len);
+  void IMUDMPRawDaraHandle(char *buf, int len);
+
   void RobotStateHandle(char *buf, int len );
 
   
@@ -388,7 +390,8 @@ void SerialMsgHandler::serialMsgLoop(long timeOut)
         continue;
       }
 
-      if( readByte == 0xA0 || readByte == 0xA1 || readByte == 0xA2 || readByte == 0xA3 || readByte == 0xA4 ) //binary package
+      //if( readByte == 0xA0 || readByte == 0xA1 || readByte == 0xA2 || readByte == 0xA3 || readByte == 0xA4  || readByte == 0xA5) //binary package
+     if( readByte > 0x80 )
       {
         bufOff = 0;
         inBinaryPkg = true;
@@ -491,9 +494,102 @@ void SerialMsgHandler::BinaryComDataReaded(char *buf, int len )
     else if( pkg == 0xA2 )
     {
       recordSerialData("-IMU-", 5);
-    IMURawDataHandle(buf, len);
+      IMURawDataHandle(buf, len);
+    }
+    else if( pkg == 0xA5 )
+    {
+      recordSerialData("-DMP-", 5);
+      IMUDMPRawDaraHandle(buf, len);
+
     }
 }
+
+
+
+ void SerialMsgHandler::IMUDMPRawDaraHandle(char *buf, int len)
+  {
+      int16_t intValue[11];
+      uint8_t *raw = (uint8_t *)buf;
+
+      for( int i=0; i<len; i+=2 )
+        intValue[i/2] = ((int16_t)raw[2+i] <<8) | raw[2+i+1];
+
+      sensor_msgs::Imu imu_raw;
+      ros::Time now =  ros::Time::now();
+
+      // broadcaster.sendTransform(
+      //   tf::StampedTransform(
+      //     tf::Transform(tf::Quaternion(0, 0, 0, 1), tf::Vector3(0, 0.0, 0.0)),
+      //     now, base_link, "imu_link"));
+
+        imu_raw.header.stamp =now;
+        imu_raw.header.frame_id = "imu_link";
+
+        ax = (double)intValue[5] * aRes - accelBias[1]; 
+        ay = (double)intValue[4] * aRes - accelBias[0];
+        az = (double)intValue[6] * aRes - accelBias[2]; 
+        gx = ((double)intValue[8] * gRes - gyroBias[1]) * 0.0174533; 
+        gy = -((double)intValue[7] * gRes - gyroBias[0]) * 0.0174533;
+        gz = ((double)intValue[9] * gRes - gyroBias[2]) * 0.0174533;
+        //pass calibrated acceleration to corrected IMU data object
+        imu_raw.linear_acceleration.y = ay; //(double)intValue[0] * aRes - accelBias[0]; 
+        imu_raw.linear_acceleration.x = ax; //(double)intValue[1] * aRes - accelBias[1]; 
+        imu_raw.linear_acceleration.z = az; //(double)intValue[2] * aRes - accelBias[2]; 
+        
+        //add calibration bias to  received angular velocity and pass to to corrected IMU data object
+        imu_raw.angular_velocity.y = gy; // -((double)intValue[3] * gRes - gyroBias[0]) * 0.0174533; 
+        imu_raw.angular_velocity.x = gx; //((double)intValue[4] * gRes - gyroBias[1]) * 0.0174533; 
+        imu_raw.angular_velocity.z = gz; // ((double)intValue[5] * gRes - gyroBias[2]) * 0.0174533; 
+
+        // Convert gyroscope degrees/sec to radians/sec
+        // gx *= 0.0174533f;
+        // gy *= 0.0174533f;
+        // gz *= 0.0174533f;
+        //publish calibrated IMU data
+        imu_raw_pub.publish(imu_raw);
+       
+  float q0 = (float)intValue[0] / 16384.0f;  //w
+  float q1 = (float)intValue[1] / 16384.0f; // x
+  float q2 = (float)intValue[2] / 16384.0f; // y
+  float q3 = (float)intValue[3] / 16384.0f; //z
+
+  geometry_msgs::TransformStamped transform;
+  transform.header.stamp =  now;
+  transform.header.frame_id =  base_link;   // "base_link";
+  transform.child_frame_id = "imu_link";
+  transform.transform.rotation.w = q0;  
+  transform.transform.rotation.x = q1;  
+  transform.transform.rotation.y = q2;  
+  transform.transform.rotation.z = q3;  
+  broadcaster.sendTransform( transform );
+
+  sensor_msgs::Imu imu_data;
+  imu_data.header.stamp = now; // ros::Time::now();
+            imu_data.header.frame_id = "imu_link"; // "imu_arduino";
+
+        imu_data.linear_acceleration.y = ay; //(double)intValue[0] * aRes - accelBias[0]; 
+        imu_data.linear_acceleration.x = ax; //(double)intValue[1] * aRes - accelBias[1]; 
+        imu_data.linear_acceleration.z = az; //(double)intValue[2] * aRes - accelBias[2]; 
+        
+        //add calibration bias to  received angular velocity and pass to to corrected IMU data object
+        imu_data.angular_velocity.y = gy; // -((double)intValue[3] * gRes - gyroBias[0]) * 0.0174533; 
+        imu_data.angular_velocity.x = gx; //((double)intValue[4] * gRes - gyroBias[1]) * 0.0174533; 
+        imu_data.angular_velocity.z = gz; // ((double)intValue[5] * gRes - gyroBias[2]) * 0.0174533; 
+
+//1230
+            imu_data.orientation.x = q1; //q1
+            imu_data.orientation.y = q2; //q2;
+            imu_data.orientation.z = q3; //q3;
+            imu_data.orientation.w = q0; //q0;
+
+            imu_pub.publish(imu_data);
+	
+
+
+
+
+      return;
+  }
 
 
   void SerialMsgHandler::IMURawDataHandle(char *buf, int len)
